@@ -146,6 +146,11 @@ function bindSeries(
     bind(root, `fx${index}`, `${formatTemp(point.temp, units)}${unit}`);
     bind(root, `fx${index}r`, formatRainPair(point.rain, point.chance, units));
   });
+  for (let index = series.hourly.length; index < 6; index += 1) {
+    bind(root, `fx${index}t`, '—');
+    bind(root, `fx${index}`, dash(dict));
+    bind(root, `fx${index}r`, '');
+  }
   series.daily.forEach((day, index) => {
     bind(root, `fd${index}h`, `${formatTemp(day.high, units)}${unit}`);
     bind(root, `fd${index}l`, `${formatTemp(day.low, units)}${unit}`);

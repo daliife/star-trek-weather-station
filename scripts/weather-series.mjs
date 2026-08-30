@@ -29,6 +29,29 @@ function hourFromLocal(value) {
   return match?.[1] ?? '';
 }
 
+function stampMs(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value < 1e12 ? value * 1000 : value;
+  }
+  const raw = String(value ?? '').trim();
+  if (!raw) return NaN;
+  const normalized = raw.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+  return Date.parse(normalized);
+}
+
+function hourLabel(value) {
+  const local = hourFromLocal(value);
+  if (local) return local;
+  const ms = stampMs(value);
+  if (!Number.isFinite(ms)) return '';
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: STATION_TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date(ms));
+}
+
 function sunPair(rise, set) {
   const up = hourFromLocal(rise);
   const down = hourFromLocal(set);
@@ -170,7 +193,13 @@ export async function fetchWundergroundSeries(apiKey, station, todayTemp) {
   }
   if (forecastDays.length < SERIES_DAYS) throw new Error('WU daily forecast was incomplete.');
 
-  const hourlyTimes = hourly.response.ok ? (hourly.body?.validTimeLocal ?? []) : [];
+  if (!hourly.response.ok) {
+    console.warn(`WU hourly forecast HTTP ${hourly.response.status}; Previsió horària will be empty.`);
+  }
+
+  const hourlyTimes = hourly.response.ok
+    ? (hourly.body?.validTimeLocal?.length ? hourly.body.validTimeLocal : (hourly.body?.validTimeUtc ?? []))
+    : [];
   const hourlyTemps = hourly.response.ok ? (hourly.body?.temperature ?? []) : [];
   const hourlyQpf = hourly.response.ok ? (hourly.body?.qpf ?? []) : [];
   const hourlyChance = hourly.response.ok ? (hourly.body?.precipChance ?? []) : [];
@@ -179,15 +208,20 @@ export async function fetchWundergroundSeries(apiKey, station, todayTemp) {
   for (let index = 0; index < hourlyTimes.length && upcoming.length < SERIES_HOURS; index += 1) {
     const stamp = hourlyTimes[index];
     const temp = finite(hourlyTemps[index]);
-    if (!stamp || temp === null || new Date(stamp).getTime() <= now) continue;
+    const ms = stampMs(stamp);
+    if (temp === null) continue;
+    if (Number.isFinite(ms) && ms <= now) continue;
     const rain = finite(hourlyQpf[index]);
     const chance = finite(hourlyChance[index]);
     upcoming.push({
-      hour: hourFromLocal(stamp) || `${String(index).padStart(2, '0')}:00`,
+      hour: hourLabel(stamp) || `${String(index).padStart(2, '0')}:00`,
       temp,
       ...(rain !== null ? { rain } : {}),
       ...(chance !== null ? { chance } : {}),
     });
+  }
+  if (upcoming.length < SERIES_HOURS) {
+    console.warn(`WU hourly forecast incomplete (${upcoming.length}/${SERIES_HOURS}).`);
   }
 
   return {
@@ -302,3 +336,5 @@ export async function fetchOpenMeteoSeries(station) {
     sun: sunPair(sunrises[todayIndex], sunsets[todayIndex]),
   };
 }
+
+export { dateFromLocal, finite, hourFromLocal, hourLabel, rangeOf, stampMs, sunPair };

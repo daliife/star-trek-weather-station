@@ -1,5 +1,7 @@
 # LCARS Weather Console
 
+[![LCARS weather console for Cabacés](public/preview.png)](https://daliife.github.io/star-trek-weather-station/)
+
 Desktop-first [Astro](https://astro.build/) static site for **current conditions** at Cabacés PWS [ICABAC4](https://www.wunderground.com/weather/es/cabac%C3%A9s/ICABAC4). The UI is a full-screen TNG-style LCARS ops console, not a single themed widget, so later panels can drop in without a redesign.
 
 Weather Underground is fetched in GitHub Actions (or locally) so the API key never reaches the browser. Imperial values are converted in the client from one metric snapshot.
