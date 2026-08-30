@@ -29,6 +29,35 @@ export function windUnit(units: Units): string {
   return units === 'imperial' ? 'mph' : 'km/h';
 }
 
+export function hPaToInHg(hPa: number): number {
+  return hPa * 0.02953;
+}
+
+export function mmToIn(mm: number): number {
+  return mm / 25.4;
+}
+
+export function formatPressure(hPa: number, units: Units): string {
+  return units === 'imperial' ? hPaToInHg(hPa).toFixed(2) : Math.round(hPa).toString();
+}
+
+export function pressureUnit(units: Units): string {
+  return units === 'imperial' ? 'inHg' : 'hPa';
+}
+
+export function formatPrecip(mm: number, units: Units): string {
+  const value = units === 'imperial' ? mmToIn(mm) : mm;
+  return units === 'imperial' ? value.toFixed(2) : value.toFixed(1);
+}
+
+export function precipUnit(units: Units): string {
+  return units === 'imperial' ? 'in' : 'mm';
+}
+
+export function precipRateUnit(units: Units): string {
+  return units === 'imperial' ? 'in/h' : 'mm/h';
+}
+
 export function isCalm(kmh: number): boolean {
   return kmh < CALM_KMH;
 }

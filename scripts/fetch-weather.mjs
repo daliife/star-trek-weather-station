@@ -2,13 +2,14 @@
  * Fetch current conditions for Cabacés PWS ICABAC4 and write a sanitized
  * snapshot to public/data/current.json.
  *
- * Primary: Weather Underground PWS contributor API (needs WU_API_KEY).
- * Fallback: Open-Meteo at 41.25°N, 0.73°E if the key is missing or cannot
- * read this station (401/403). Fail clearly on any other error.
+ * Primary: Weather Underground for current, forecast, and history (needs WU_API_KEY).
+ * Fallback: Open-Meteo for the whole snapshot if the key is missing or cannot
+ * read current conditions. A WU snapshot never mixes Open-Meteo series.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { fetchOpenMeteoSeries, fetchWundergroundSeries } from './weather-series.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_PATH = resolve(ROOT, 'public/data/current.json');
@@ -88,7 +89,7 @@ async function fetchWunderground(apiKey, station) {
   url.searchParams.set('numericPrecision', 'decimal');
   url.searchParams.set('apiKey', apiKey);
 
-  const { response, body, text } = await fetchJson(url, 'wunderground');
+  const { response, body, text } = await fetchJson(url);
 
   if (response.status === 401 || response.status === 403) {
     const err = new Error(
@@ -99,13 +100,23 @@ async function fetchWunderground(apiKey, station) {
     throw err;
   }
 
+  if (response.status === 429) {
+    const err = new Error(`WU rate limit (HTTP 429) for ${station.stationId}.`);
+    err.code = 'WU_RATE_LIMIT';
+    throw err;
+  }
+
   if (!response.ok) {
     throw new Error(`WU request failed HTTP ${response.status}: ${text.slice(0, 400)}`);
   }
 
   const obs = body?.observations?.[0];
   if (!obs) {
-    throw new Error(`WU response had no observations for ${station.stationId}.`);
+    const err = new Error(
+      `WU response had no observations for ${station.stationId}. Contributor keys return empty or stale payloads when the daily/minute cap is hit.`,
+    );
+    err.code = 'WU_NO_DATA';
+    throw err;
   }
   if (obs.stationID && obs.stationID !== station.stationId) {
     throw new Error(`WU returned station ${obs.stationID}, expected ${station.stationId}.`);
@@ -129,6 +140,8 @@ async function fetchWunderground(apiKey, station) {
       windSpeed: requireNumber(metric.windSpeed, 'metric.windSpeed'),
       windGust: requireNumber(metric.windGust, 'metric.windGust'),
       windDir: requireNumber(obs.winddir, 'winddir'),
+      ...(typeof metric.pressure === 'number' ? { pressure: metric.pressure } : {}),
+      ...(typeof metric.precipTotal === 'number' ? { precipTotal: metric.precipTotal } : {}),
     },
   };
 }
@@ -139,11 +152,13 @@ async function fetchOpenMeteo(station) {
   url.searchParams.set('longitude', String(station.lon));
   url.searchParams.set(
     'current',
-    'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,precipitation',
+    'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,precipitation,surface_pressure',
   );
-  url.searchParams.set('timezone', 'UTC');
+  url.searchParams.set('daily', 'precipitation_sum');
+  url.searchParams.set('forecast_days', '1');
+  url.searchParams.set('timezone', 'auto');
 
-  const { response, body, text } = await fetchJson(url, 'open-meteo');
+  const { response, body, text } = await fetchJson(url);
   if (!response.ok) {
     throw new Error(`Open-Meteo request failed HTTP ${response.status}: ${text.slice(0, 400)}`);
   }
@@ -152,6 +167,8 @@ async function fetchOpenMeteo(station) {
   if (!current) {
     throw new Error('Open-Meteo response had no current block.');
   }
+
+  const todayRain = body?.daily?.precipitation_sum?.[0];
 
   return {
     source: 'open-meteo',
@@ -170,35 +187,54 @@ async function fetchOpenMeteo(station) {
       windSpeed: requireNumber(current.wind_speed_10m, 'wind_speed_10m'),
       windGust: requireNumber(current.wind_gusts_10m, 'wind_gusts_10m'),
       windDir: requireNumber(current.wind_direction_10m, 'wind_direction_10m'),
+      ...(typeof current.surface_pressure === 'number' ? { pressure: current.surface_pressure } : {}),
+      ...(typeof todayRain === 'number' ? { precipTotal: todayRain } : {}),
     },
   };
+}
+
+async function withWundergroundSeries(snapshot, apiKey, station) {
+  try {
+    snapshot.series = await fetchWundergroundSeries(apiKey, station, snapshot.metric.temp);
+  } catch (error) {
+    console.warn(`WU series unavailable; leaving Previsió/Històric empty rather than mixing Open-Meteo. ${error.message}`);
+  }
+  return snapshot;
+}
+
+async function withOpenMeteoSeries(snapshot, station) {
+  try {
+    snapshot.series = await fetchOpenMeteoSeries(station);
+  } catch (error) {
+    console.warn(`Open-Meteo series unavailable. ${error.message}`);
+  }
+  return snapshot;
 }
 
 async function main() {
   loadEnv();
   const station = loadStationConfig();
   const apiKey = process.env.WU_API_KEY?.trim();
-  const inCi = process.env.GITHUB_ACTIONS === 'true';
 
   if (!apiKey) {
-    const message = 'WU_API_KEY is not set.';
-    if (!inCi) {
-      console.warn(`${message} Leaving sample public/data/current.json in place for local UI work.`);
-      return;
-    }
-    console.warn(`${message} Falling back to Open-Meteo (${station.lat}N, ${station.lon}E) for ${station.stationId}.`);
-    writeSnapshot(await fetchOpenMeteo(station));
+    console.warn(
+      `WU_API_KEY is not set. Falling back to Open-Meteo (${station.lat}N, ${station.lon}E) for ${station.stationId}.`,
+    );
+    writeSnapshot(await withOpenMeteoSeries(await fetchOpenMeteo(station), station));
     return;
   }
 
   try {
-    writeSnapshot(await fetchWunderground(apiKey, station));
+    // Current + history + daily/hourly forecast. Cron */10 stays under the typical 1500/day cap.
+    // The browser never uses this key and does not call Open-Meteo when the snapshot is WU.
+    console.log(`WU PWS current + series for ${station.stationId}.`);
+    writeSnapshot(await withWundergroundSeries(await fetchWunderground(apiKey, station), apiKey, station));
   } catch (error) {
-    if (error?.code === 'WU_FORBIDDEN') {
+    if (error?.code === 'WU_FORBIDDEN' || error?.code === 'WU_RATE_LIMIT' || error?.code === 'WU_NO_DATA') {
       console.error(error.message);
       if (error.detail) console.error(error.detail);
       console.warn(`Falling back to Open-Meteo (${station.lat}N, ${station.lon}E) for ${station.stationId}.`);
-      writeSnapshot(await fetchOpenMeteo(station));
+      writeSnapshot(await withOpenMeteoSeries(await fetchOpenMeteo(station), station));
       return;
     }
     console.error('Weather fetch failed.');

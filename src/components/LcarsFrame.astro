@@ -7,7 +7,7 @@ import PrefsModal from './PrefsModal.astro';
 import Readout from './Readout.astro';
 ---
 
-<div class="console is-booting" data-state="ready" data-view="station" data-lang="ca" data-units="metric">
+<div class="console is-booting" data-state="ready" data-view="station" data-lang="en" data-units="metric">
   <div class="elbow elbow-nw">
     <div class="elbow-spine" aria-hidden="true"></div>
     <div class="seg seg-location">
@@ -19,31 +19,31 @@ import Readout from './Readout.astro';
   <aside class="rail">
     <nav class="pills">
       <button class="pill pill-nav pill-station is-active" type="button" data-view="station" aria-pressed="true">
-        <span data-i18n="current">Ara</span>
+        <span data-i18n="current">Now</span>
       </button>
       <button class="pill pill-nav pill-forecast" type="button" data-view="forecast" aria-pressed="false">
-        <span data-i18n="forecast">Previsió</span>
+        <span data-i18n="forecast">Forecast</span>
       </button>
       <button class="pill pill-nav pill-history" type="button" data-view="history" aria-pressed="false">
-        <span data-i18n="history">Històric</span>
+        <span data-i18n="history">History</span>
       </button>
       <button class="pill pill-prefs" type="button" data-prefs-open aria-haspopup="dialog" aria-expanded="false">
-        <span data-i18n="preferences">Preferències</span>
+        <span data-i18n="preferences">Preferences</span>
       </button>
     </nav>
   </aside>
 
   <header class="header">
     <div class="seg seg-id">
-      <span class="seg-k" data-i18n="station">Estació</span>
+      <span class="seg-k" data-bind="stationKey">Station</span>
       <span data-bind="stationId">{station.stationId}</span>
     </div>
     <div class="seg seg-observed">
-      <span class="seg-k" data-i18n="observed">Lectura</span>
+      <span class="seg-k" data-i18n="observed">Reading</span>
       <span data-bind="observed">—</span>
     </div>
     <div class="chrono">
-      <span class="chrono-k" data-i18n="localTime">Hora local</span>
+      <span class="chrono-k" data-i18n="localTime">Local time</span>
       <span data-bind="clock">00:00:00</span>
     </div>
   </header>
@@ -63,12 +63,12 @@ import Readout from './Readout.astro';
 
   <footer class="footer">
     <div class="seg seg-source">
-      <span class="seg-k" data-i18n="source">Font</span>
+      <span class="seg-k" data-i18n="source">Source</span>
       <span data-bind="source">WunderGround</span>
     </div>
     <div class="seg seg-link">
-      <span class="seg-k" data-i18n="link">Connexió</span>
-      <span data-bind="linkStatus">En línia</span>
+      <span class="seg-k" data-i18n="link">Connection</span>
+      <span data-bind="linkStatus">Online</span>
     </div>
   </footer>
 

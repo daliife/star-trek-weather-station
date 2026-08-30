@@ -1,61 +1,22 @@
 ---
 import LangToggle from './LangToggle.astro';
 import UnitsToggle from './UnitsToggle.astro';
-import station from '../config/station.json';
 ---
 
 <dialog class="prefs-dialog" data-prefs aria-labelledby="prefs-title">
   <form class="prefs-panel" method="dialog">
     <header class="prefs-head">
-      <h2 id="prefs-title" class="prefs-title" data-i18n="preferences">Preferències</h2>
-      <button class="prefs-close" type="submit" value="close" data-i18n="close">Tancar</button>
+      <h2 id="prefs-title" class="prefs-title" data-i18n="preferences">Preferences</h2>
+      <button class="prefs-close" type="submit" value="close" data-i18n="close">Close</button>
     </header>
     <div class="prefs-body">
       <section class="prefs-group">
-        <h3 class="prefs-label" data-i18n="pws">Estació PWS</h3>
-        <p class="prefs-note" data-i18n="stationHint">
-          Identificador PWS i lloc. Si no és la de la mostra del servidor, es consulta Open-Meteo.
-        </p>
-        <label class="prefs-field">
-          <span class="prefs-field-k" data-i18n="station">Estació</span>
-          <input class="prefs-input" type="text" name="stationId" data-station-id maxlength="16" autocomplete="off" spellcheck="false" value={station.stationId} />
-        </label>
-        <label class="prefs-field">
-          <span class="prefs-field-k" data-i18n="locality">Localitat</span>
-          <input class="prefs-input prefs-input-place" type="text" name="name" data-station-name maxlength="48" value={station.name} />
-        </label>
-        <label class="prefs-field">
-          <span class="prefs-field-k" data-i18n="region">Regió</span>
-          <input class="prefs-input prefs-input-place" type="text" name="region" data-station-region maxlength="48" value={station.region} />
-        </label>
-        <div class="prefs-coords">
-          <label class="prefs-field">
-            <span class="prefs-field-k" data-i18n="latitude">Latitud</span>
-            <input class="prefs-input" type="text" name="lat" data-station-lat inputmode="decimal" value={String(station.lat)} />
-          </label>
-          <label class="prefs-field">
-            <span class="prefs-field-k" data-i18n="longitude">Longitud</span>
-            <input class="prefs-input" type="text" name="lon" data-station-lon inputmode="decimal" value={String(station.lon)} />
-          </label>
-        </div>
-        <div class="prefs-actions">
-          <button class="pill pill-sm pill-units" type="button" data-station-apply data-i18n="apply">Aplicar</button>
-          <button class="pill pill-sm pill-lang" type="button" data-station-reset data-i18n="defaults">Per defecte</button>
-        </div>
-      </section>
-      <section class="prefs-group">
-        <h3 class="prefs-label" data-i18n="lang">Idioma</h3>
+        <h3 class="prefs-label" data-i18n="lang">Language</h3>
         <LangToggle />
       </section>
       <section class="prefs-group">
-        <h3 class="prefs-label" data-i18n="units">Unitats</h3>
+        <h3 class="prefs-label" data-i18n="units">Units</h3>
         <UnitsToggle />
-      </section>
-      <section class="prefs-group">
-        <h3 class="prefs-label" data-i18n="info">Informació</h3>
-        <p class="prefs-note" data-i18n="disclaimer">
-          Projecte de fans. No afiliat a Paramount, Star Trek ni Weather Underground.
-        </p>
       </section>
     </div>
   </form>

@@ -1,0 +1,291 @@
+const SERIES_HOURS = 6;
+const SERIES_DAYS = 5;
+const SERIES_BARS = 7;
+const SERIES_PAST_DAYS = 31;
+const STATION_TZ = 'Europe/Madrid';
+
+function stationDate(offsetDays = 0) {
+  const date = new Date();
+  date.setDate(date.getDate() + offsetDays);
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: STATION_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+function ymdCompact(isoDate) {
+  return isoDate.replaceAll('-', '');
+}
+
+function dateFromLocal(value) {
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(String(value ?? ''));
+  return match?.[1] ?? '';
+}
+
+function hourFromLocal(value) {
+  const match = /T(\d{2}:\d{2})/.exec(String(value ?? ''));
+  return match?.[1] ?? '';
+}
+
+function finite(value) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+function rangeOf(highs, lows, rains, from, to) {
+  const sliceHigh = highs.slice(from, to + 1).filter((value) => value !== null);
+  const sliceLow = lows.slice(from, to + 1).filter((value) => value !== null);
+  if (!sliceHigh.length || !sliceLow.length) return null;
+  const sliceRain = (rains ?? []).slice(from, to + 1).filter((value) => value !== null);
+  return {
+    high: Math.max(...sliceHigh),
+    low: Math.min(...sliceLow),
+    ...(sliceRain.length ? { rain: sliceRain.reduce((sum, value) => sum + value, 0) } : {}),
+  };
+}
+
+function dayChance(chances, dayIndex) {
+  const day = finite(chances?.[dayIndex * 2]);
+  const night = finite(chances?.[dayIndex * 2 + 1]);
+  if (day === null && night === null) return undefined;
+  return Math.max(day ?? 0, night ?? 0);
+}
+
+async function fetchJson(url) {
+  const response = await fetch(url);
+  const text = await response.text();
+  let body = null;
+  try {
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    body = null;
+  }
+  return { response, body, text };
+}
+
+function wuUrl(path, params) {
+  const url = new URL(path, 'https://api.weather.com');
+  for (const [key, value] of Object.entries(params)) url.searchParams.set(key, String(value));
+  return url;
+}
+
+export async function fetchWundergroundSeries(apiKey, station, todayTemp) {
+  const today = stationDate(0);
+  const start = ymdCompact(stationDate(-SERIES_PAST_DAYS));
+  const end = ymdCompact(stationDate(-1));
+  const historyUrl = wuUrl('/v2/pws/history/daily', {
+    stationId: station.stationId,
+    format: 'json',
+    units: 'm',
+    startDate: start,
+    endDate: end,
+    numericPrecision: 'decimal',
+    apiKey,
+  });
+  const dailyUrl = wuUrl('/v3/wx/forecast/daily/5day', {
+    geocode: `${station.lat},${station.lon}`,
+    format: 'json',
+    units: 'm',
+    language: 'ca-ES',
+    apiKey,
+  });
+  const hourlyUrl = wuUrl('/v3/wx/forecast/hourly/2day', {
+    geocode: `${station.lat},${station.lon}`,
+    format: 'json',
+    units: 'm',
+    language: 'ca-ES',
+    apiKey,
+  });
+
+  const [history, daily, hourly] = await Promise.all([
+    fetchJson(historyUrl),
+    fetchJson(dailyUrl),
+    fetchJson(hourlyUrl),
+  ]);
+
+  if (!history.response.ok) throw new Error(`WU history HTTP ${history.response.status}`);
+  if (!daily.response.ok) throw new Error(`WU daily forecast HTTP ${daily.response.status}`);
+
+  const observations = Array.isArray(history.body?.observations) ? history.body.observations : [];
+  const days = observations
+    .map((obs) => {
+      const date = dateFromLocal(obs.obsTimeLocal) || dateFromLocal(obs.obsTimeUtc);
+      const metric = obs.metric ?? {};
+      const high = finite(metric.tempHigh);
+      const low = finite(metric.tempLow);
+      const avg = finite(metric.tempAvg);
+      const rain = finite(metric.precipTotal);
+      if (!date || high === null || low === null) return null;
+      return { date, high, low, avg: avg ?? (high + low) / 2, rain };
+    })
+    .filter(Boolean)
+    .sort((left, right) => left.date.localeCompare(right.date));
+
+  if (days.length < SERIES_BARS - 1) throw new Error('WU history did not include enough daily summaries.');
+
+  const highs = days.map((day) => day.high);
+  const lows = days.map((day) => day.low);
+  const rains = days.map((day) => day.rain);
+  const yesterday = days[days.length - 1];
+  const yesterdayRange = {
+    high: yesterday.high,
+    low: yesterday.low,
+    ...(yesterday.rain !== null ? { rain: yesterday.rain } : {}),
+  };
+  const week = rangeOf(highs, lows, rains, Math.max(0, days.length - 7), days.length - 1);
+  const month = rangeOf(highs, lows, rains, Math.max(0, days.length - 30), days.length - 1);
+  if (!week || !month) throw new Error('WU history ranges were incomplete.');
+
+  const pastBars = days.slice(-(SERIES_BARS - 1)).map((day) => ({ date: day.date, temp: day.avg }));
+  const lastDays = [...pastBars, { date: today, temp: todayTemp }];
+
+  const dailyDates = daily.body?.validTimeLocal ?? [];
+  const dailyHighs = daily.body?.calendarDayTemperatureMax ?? daily.body?.temperatureMax ?? [];
+  const dailyLows = daily.body?.calendarDayTemperatureMin ?? daily.body?.temperatureMin ?? [];
+  const dailyQpf = daily.body?.qpf ?? [];
+  const dailyChances = daily.body?.daypart?.[0]?.precipChance ?? [];
+  const forecastDays = [];
+  for (let index = 0; index < dailyDates.length && forecastDays.length < SERIES_DAYS; index += 1) {
+    const date = dateFromLocal(dailyDates[index]);
+    const high = finite(dailyHighs[index]);
+    const low = finite(dailyLows[index]);
+    if (!date || high === null || low === null) continue;
+    const rain = finite(dailyQpf[index]);
+    const chance = dayChance(dailyChances, index);
+    forecastDays.push({
+      date,
+      high,
+      low,
+      ...(rain !== null ? { rain } : {}),
+      ...(chance !== undefined ? { chance } : {}),
+    });
+  }
+  if (forecastDays.length < SERIES_DAYS) throw new Error('WU daily forecast was incomplete.');
+
+  const hourlyTimes = hourly.response.ok ? (hourly.body?.validTimeLocal ?? []) : [];
+  const hourlyTemps = hourly.response.ok ? (hourly.body?.temperature ?? []) : [];
+  const hourlyQpf = hourly.response.ok ? (hourly.body?.qpf ?? []) : [];
+  const hourlyChance = hourly.response.ok ? (hourly.body?.precipChance ?? []) : [];
+  const now = Date.now();
+  const upcoming = [];
+  for (let index = 0; index < hourlyTimes.length && upcoming.length < SERIES_HOURS; index += 1) {
+    const stamp = hourlyTimes[index];
+    const temp = finite(hourlyTemps[index]);
+    if (!stamp || temp === null || new Date(stamp).getTime() <= now) continue;
+    const rain = finite(hourlyQpf[index]);
+    const chance = finite(hourlyChance[index]);
+    upcoming.push({
+      hour: hourFromLocal(stamp) || `${String(index).padStart(2, '0')}:00`,
+      temp,
+      ...(rain !== null ? { rain } : {}),
+      ...(chance !== null ? { chance } : {}),
+    });
+  }
+
+  return {
+    hourly: upcoming,
+    daily: forecastDays,
+    yesterday: yesterdayRange,
+    week,
+    month,
+    lastDays,
+  };
+}
+
+export async function fetchOpenMeteoSeries(station) {
+  const url = new URL('https://api.open-meteo.com/v1/forecast');
+  url.searchParams.set('latitude', String(station.lat));
+  url.searchParams.set('longitude', String(station.lon));
+  url.searchParams.set('hourly', 'temperature_2m,precipitation,precipitation_probability');
+  url.searchParams.set(
+    'daily',
+    'temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,precipitation_probability_max',
+  );
+  url.searchParams.set('forecast_days', String(SERIES_DAYS));
+  url.searchParams.set('past_days', String(SERIES_PAST_DAYS));
+  url.searchParams.set('timezone', 'auto');
+  const { response, body } = await fetchJson(url);
+  if (!response.ok) throw new Error(`Open-Meteo series HTTP ${response.status}`);
+
+  const hours = body?.hourly?.time ?? [];
+  const hourTemps = body?.hourly?.temperature_2m ?? [];
+  const hourRain = body?.hourly?.precipitation ?? [];
+  const hourChance = body?.hourly?.precipitation_probability ?? [];
+  const dates = body?.daily?.time ?? [];
+  const highs = body?.daily?.temperature_2m_max ?? [];
+  const lows = body?.daily?.temperature_2m_min ?? [];
+  const means = body?.daily?.temperature_2m_mean ?? [];
+  const dailyRain = body?.daily?.precipitation_sum ?? [];
+  const dailyChance = body?.daily?.precipitation_probability_max ?? [];
+  const now = Date.now();
+  const hourly = [];
+  for (let index = 0; index < hours.length && hourly.length < SERIES_HOURS; index += 1) {
+    const stamp = hours[index];
+    const temp = finite(hourTemps[index]);
+    if (!stamp || temp === null || new Date(stamp).getTime() <= now) continue;
+    const rain = finite(hourRain[index]);
+    const chance = finite(hourChance[index]);
+    hourly.push({
+      hour: hourFromLocal(stamp),
+      temp,
+      ...(rain !== null ? { rain } : {}),
+      ...(chance !== null ? { chance } : {}),
+    });
+  }
+  if (hourly.length < SERIES_HOURS) throw new Error('Open-Meteo series had too few upcoming hours.');
+
+  const today = new Intl.DateTimeFormat('en-CA', {
+    timeZone: body?.timezone || STATION_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+  const todayIndex = dates.indexOf(today);
+  if (todayIndex < SERIES_BARS - 1 || todayIndex + SERIES_DAYS > dates.length) {
+    throw new Error('Open-Meteo series did not include today and the next days.');
+  }
+
+  const daily = dates.slice(todayIndex, todayIndex + SERIES_DAYS).map((date, index) => {
+    const rain = finite(dailyRain[todayIndex + index]);
+    const chance = finite(dailyChance[todayIndex + index]);
+    return {
+      date,
+      high: finite(highs[todayIndex + index]),
+      low: finite(lows[todayIndex + index]),
+      ...(rain !== null ? { rain } : {}),
+      ...(chance !== null ? { chance } : {}),
+    };
+  });
+  if (daily.some((day) => day.high === null || day.low === null)) {
+    throw new Error('Open-Meteo daily forecast was incomplete.');
+  }
+
+  const yesterdayIndex = todayIndex - 1;
+  const finiteHighs = highs.map(finite);
+  const finiteLows = lows.map(finite);
+  const finiteRains = dailyRain.map(finite);
+  const week = rangeOf(finiteHighs, finiteLows, finiteRains, todayIndex - 7, yesterdayIndex);
+  const month = rangeOf(finiteHighs, finiteLows, finiteRains, todayIndex - 30, yesterdayIndex);
+  if (!week || !month) throw new Error('Open-Meteo history ranges were incomplete.');
+
+  const lastDays = dates.slice(todayIndex - (SERIES_BARS - 1), todayIndex + 1).map((date, index) => ({
+    date,
+    temp: finite(means[todayIndex - (SERIES_BARS - 1) + index]),
+  }));
+  if (lastDays.some((day) => day.temp === null)) throw new Error('Open-Meteo last-days series was incomplete.');
+
+  return {
+    hourly,
+    daily,
+    yesterday: {
+      high: finite(highs[yesterdayIndex]),
+      low: finite(lows[yesterdayIndex]),
+      ...(finite(dailyRain[yesterdayIndex]) !== null ? { rain: finite(dailyRain[yesterdayIndex]) } : {}),
+    },
+    week,
+    month,
+    lastDays,
+  };
+}

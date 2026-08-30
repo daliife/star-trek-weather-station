@@ -16,7 +16,7 @@ pnpm dev
 
 Open [http://localhost:4321/star-trek-weather-station/](http://localhost:4321/star-trek-weather-station/).
 
-Optional: `cp .env.example .env` and set `WU_API_KEY` if you have a contributor key that can read ICABAC4. Without a key, `pnpm fetch-weather` leaves the sample `public/data/current.json` in place so the console can be designed offline.
+Optional: `cp .env.example .env` and set `WU_API_KEY` if you have a contributor key that can read ICABAC4. Without a key, `pnpm fetch-weather` writes a live Open-Meteo snapshot instead.
 
 Requires Node 22+ and pnpm.
 
@@ -28,9 +28,17 @@ GitHub Pages cannot keep a secret. v1 therefore:
 2. Runs `scripts/fetch-weather.mjs` to write a sanitized snapshot to `public/data/current.json`.
 3. Builds Astro and deploys `dist/`. The browser only loads that JSON.
 
-Primary source: [PWS current observations](https://developer.weather.com/docs/openapi/pws-observations-current-conditions-2-0/get-v2-pws-observations-current-by-stationid) for the station in `src/config/station.json` (default `ICABAC4`, `units=m`). Override with `WU_STATION_ID` / `STATION_*` env vars. Contributor keys are often limited to stations owned by that account. If the key is missing in CI or the request returns 401/403, the script falls back to [Open-Meteo](https://open-meteo.com/) at the configured coordinates. In the console, Preferències can point at another PWS; if it is not the server snapshot, the browser queries Open-Meteo. The footer source badge shows which provider was used. We do not scrape wunderground.com.
+Primary source: Weather Underground for **Ara**, **Previsió**, and **Històric**. Current comes from the [PWS observations](https://developer.weather.com/docs/openapi/pws-observations-current-conditions-2-0/get-v2-pws-observations-current-by-stationid) endpoint; history from PWS daily summaries; forecast from the Weather Company 5-day / 2-day hourly products at the station coordinates. The station is fixed in `src/config/station.json`. If the key is missing or WU cannot serve current conditions, the whole snapshot (including series) falls back to [Open-Meteo](https://open-meteo.com/). A WU snapshot never mixes in Open-Meteo forecast/history. The footer source badge is that snapshot. We do not scrape wunderground.com.
 
 The PWS payload has no sky-condition phrase. The center readout is temperature. A status pill shows `NOMINAL` / `PRECIP` (from `precipRate`) / `DATA EXPIRED` / `OFFLINE`. The footer link state is `ONLINE` / `STALE` / `NO DATA` (stale if the observation is older than about 30 minutes).
+
+## API quota
+
+PWS contributor keys are typically capped at **1500 calls/day** and **30/minute**. Usage is on the WU account under [API Keys](https://www.wunderground.com/member/api-keys) → Show Usage.
+
+The public site does not spend that quota. The browser never sees `WU_API_KEY`. Each visitor only loads `current.json` from Pages. Only `scripts/fetch-weather.mjs` in GitHub Actions (or a local `.env`) calls Weather Underground: current + history + daily/hourly forecast (**up to 4 calls per run**).
+
+The deploy cron is every 10 minutes: about **144–576 WU calls/day**, plus a burst on each push to `main` or a manual run. That stays under 1500. If WU returns 429 or an empty observation, the script falls back to Open-Meteo for the whole snapshot so the console stays up.
 
 ## Snapshot shape
 
@@ -49,16 +57,18 @@ The PWS payload has no sky-condition phrase. The center readout is temperature. 
     "humidity": 41,
     "windSpeed": 4.8,
     "windGust": 6.4,
-    "windDir": 0
+    "windDir": 0,
+    "pressure": 1013.2,
+    "precipTotal": 0
   }
 }
 ```
 
-`source` is `wunderground-pws` or `open-meteo`. Feels-like is heat index or wind chill from the PWS payload.
+`source` is `wunderground-pws` or `open-meteo`. Feels-like is heat index or wind chill from the PWS payload. When the same source can provide it, `series` holds forecast and history for the other two views.
 
 ## Language and units
 
-Labels live in `src/i18n/{ca,es,en}.json` (numbers stay numeric). Default language is Catalan; default units are metric (°C, km/h). The imperial toggle is °F and mph. Language and units are set in the preferences dialog and persist in `localStorage`.
+Labels live in `src/i18n/{ca,es,en}.json` (numbers stay numeric). Default language is English; default units are metric (°C, km/h, hPa, mm). The imperial toggle is °F, mph, inHg, and inches. Language and units are set in the preferences dialog and persist in `localStorage`.
 
 ## GitHub Pages
 
@@ -73,8 +83,8 @@ Labels live in `src/i18n/{ca,es,en}.json` (numbers stay numeric). Default langua
 - Left: view pills `STATION` / `FORECAST` / `HISTORY`, plus a preferences control for language and units
 - Top: location, station id, current view, local chronometer
 - Station view: oversized temperature, separate feels-like and wind tiles, humidity/gust/direction/age grid
-- Forecast and History views: labeled mock data until live endpoints are wired
-- Bottom: source, station, link status, fetched-at, fan disclaimer
+- Forecast and History views: Open-Meteo hourly/daily forecast plus yesterday / 7 / 30 day history
+- Bottom: source, station, link status, fetched-at
 
 Tokens and frame live in `src/styles/lcars.css` (Antonio, own elbows/pills — no LCARS CSS kit). The interactive island is `WeatherConsole.astro`.
 

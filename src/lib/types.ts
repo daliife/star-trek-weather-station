@@ -11,6 +11,38 @@ export interface StationConfig {
   lon: number;
 }
 
+export interface TempRange {
+  high: number;
+  low: number;
+  rain?: number;
+}
+
+export interface HourPoint {
+  hour: string;
+  temp: number;
+  rain?: number;
+  chance?: number;
+}
+
+export interface DayPoint extends TempRange {
+  date: string;
+  chance?: number;
+}
+
+export interface SeriesPoint {
+  date: string;
+  temp: number;
+}
+
+export interface WeatherSeries {
+  hourly: HourPoint[];
+  daily: DayPoint[];
+  yesterday: TempRange;
+  week: TempRange;
+  month: TempRange;
+  lastDays: SeriesPoint[];
+}
+
 export interface WeatherSnapshot {
   source: WeatherSource;
   stationId: string;
@@ -30,7 +62,10 @@ export interface WeatherSnapshot {
     windSpeed: number;
     windGust: number;
     windDir: number;
+    pressure?: number;
+    precipTotal?: number;
   };
+  series?: WeatherSeries;
 }
 
 export type OpsStatus = 'nominal' | 'precip' | 'expired' | 'offline' | 'loading' | 'error';

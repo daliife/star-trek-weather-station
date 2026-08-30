@@ -3,25 +3,24 @@ import type { Dictionary } from './i18n';
 import {
   DEFAULT_STATION,
   applyDocumentTitle,
-  clearStation,
+  fetchOpenMeteoSeries,
   fetchOpenMeteoSnapshot,
-  geocodePlace,
-  loadStation,
-  normalizeStationId,
-  parseStation,
-  sameStationId,
-  saveStation,
 } from './station';
-import type { ConsoleView, Lang, LinkStatus, OpsStatus, StationConfig, Units, WeatherSnapshot } from './types';
+import type { ConsoleView, Lang, LinkStatus, OpsStatus, Units, WeatherSeries, WeatherSnapshot } from './types';
 import {
   cardinalIndex,
   formatAge,
   formatClock,
   formatDegrees,
+  formatPrecip,
+  formatPressure,
   formatTemp,
   formatWind,
   isCalm,
   isStale,
+  precipRateUnit,
+  precipUnit,
+  pressureUnit,
   tempUnit,
   windUnit,
 } from './units';
@@ -30,39 +29,31 @@ const LANG_KEY = 'lcars.lang';
 const UNITS_KEY = 'lcars.units';
 const VIEW_KEY = 'lcars.view';
 
-const MOCK_HOURS = [29.8, 28.4, 26.9, 25.1, 23.6, 22.4];
-const MOCK_DAYS = [
-  { high: 31.2, low: 18.4 },
-  { high: 30.1, low: 17.8 },
-  { high: 28.6, low: 16.9 },
-  { high: 27.4, low: 16.2 },
-  { high: 26.8, low: 15.7 },
-];
-const MOCK_HISTORY = {
-  yesterday: { high: 32.1, low: 19.0 },
-  week: { high: 33.4, low: 15.2 },
-  month: { high: 36.8, low: 12.6 },
-};
-const MOCK_SERIES = [24.6, 26.1, 23.8, 28.4, 25.9, 27.5, 24.8];
-
-function nextHours(count: number): string[] {
-  const start = new Date().getHours() + 1;
-  return Array.from({ length: count }, (_, index) => {
-    const hour = (start + index + 24) % 24;
-    return `${String(hour).padStart(2, '0')}:00`;
-  });
+function weekdayFromDate(isoDate: string, weekdays: string[]): string {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  if (!year || !month || !day) return '—';
+  return weekdays[new Date(year, month - 1, day).getDay()] ?? '—';
 }
 
-function weekdayLabel(offsetDays: number, weekdays: string[]): string {
-  const date = new Date();
-  date.setDate(date.getDate() + offsetDays);
-  return weekdays[date.getDay()] ?? '—';
+function dayNumber(isoDate: string): string {
+  const day = Number(isoDate.split('-')[2]);
+  return Number.isFinite(day) ? String(day) : '';
 }
 
-function seriesLabel(daysAgo: number, dict: Dictionary): string {
-  if (daysAgo === 0) return dict.today;
-  if (daysAgo === 1) return dict.yesterday;
-  return weekdayLabel(-daysAgo, dict.weekdays);
+function forecastDayLabel(isoDate: string, index: number, dict: Dictionary): string {
+  const num = dayNumber(isoDate);
+  if (index === 0) return num ? `${dict.today} ${num}` : dict.today;
+  if (index === 1) return num ? `${dict.tomorrow} ${num}` : dict.tomorrow;
+  const name = weekdayFromDate(isoDate, dict.weekdaysLong);
+  return num ? `${name} ${num}` : name;
+}
+
+function historyDayParts(isoDate: string, today: string, dict: Dictionary): { name: string; day: string } {
+  const offset = Math.round((Date.parse(`${today}T00:00:00`) - Date.parse(`${isoDate}T00:00:00`)) / 86400000);
+  const day = dayNumber(isoDate);
+  if (offset === 0) return { name: dict.today, day };
+  if (offset === 1) return { name: dict.yesterday, day };
+  return { name: weekdayFromDate(isoDate, dict.weekdaysLong), day };
 }
 
 function seriesHeight(temp: number, temps: number[]): string {
@@ -82,7 +73,7 @@ function isView(value: string | null): value is ConsoleView {
 
 function loadLang(): Lang {
   const stored = localStorage.getItem(LANG_KEY);
-  return isLang(stored) ? stored : 'ca';
+  return isLang(stored) ? stored : 'en';
 }
 
 function loadUnits(): Units {
@@ -95,42 +86,84 @@ function loadView(): ConsoleView {
   return isView(stored) ? stored : 'station';
 }
 
-function bindMocks(root: HTMLElement, units: Units, dict: Dictionary) {
-  const hours = nextHours(MOCK_HOURS.length);
-  MOCK_HOURS.forEach((temp, index) => {
-    bind(root, `fx${index}t`, hours[index] ?? '—');
-    bind(root, `fx${index}`, `${formatTemp(temp, units)}${tempUnit(units)}`);
+function bindSeries(
+  root: HTMLElement,
+  series: WeatherSeries | null,
+  units: Units,
+  dict: Dictionary,
+  note: string,
+) {
+  bind(root, 'seriesNote', note);
+  root.querySelectorAll<HTMLElement>('[data-bind="seriesNote"]').forEach((node) => {
+    node.hidden = !note;
   });
-  MOCK_DAYS.forEach((day, index) => {
-    bind(root, `fd${index}h`, `${formatTemp(day.high, units)}${tempUnit(units)}`);
-    bind(root, `fd${index}l`, `${formatTemp(day.low, units)}${tempUnit(units)}`);
-    if (index >= 2) bind(root, `fd${index}k`, weekdayLabel(index, dict.weekdays));
+
+  if (!series) {
+    for (let index = 0; index < 6; index += 1) {
+      bind(root, `fx${index}t`, dash());
+      bind(root, `fx${index}`, dash());
+      bind(root, `fx${index}r`, '');
+    }
+    for (let index = 0; index < 5; index += 1) {
+      bind(root, `fd${index}h`, dash());
+      bind(root, `fd${index}l`, dash());
+      bind(root, `fd${index}r`, dash());
+      bind(root, `fd${index}k`, dash());
+    }
+    bind(root, 'hyh', dash());
+    bind(root, 'hyl', dash());
+    bind(root, 'hyr', dash());
+    bind(root, 'hwh', dash());
+    bind(root, 'hwl', dash());
+    bind(root, 'hwr', dash());
+    bind(root, 'hmh', dash());
+    bind(root, 'hml', dash());
+    bind(root, 'hmr', dash());
+    for (let index = 0; index < 7; index += 1) {
+      bind(root, `hs${index}`, dash());
+      bind(root, `hs${index}k`, dash());
+      bind(root, `hs${index}n`, '');
+      root.querySelector<HTMLElement>(`[data-bar="${index}"]`)?.style.setProperty('--h', '26%');
+    }
+    return;
+  }
+
+  const unit = tempUnit(units);
+  series.hourly.forEach((point, index) => {
+    bind(root, `fx${index}t`, point.hour);
+    bind(root, `fx${index}`, `${formatTemp(point.temp, units)}${unit}`);
+    bind(root, `fx${index}r`, formatRainPair(point.rain, point.chance, units));
   });
-  bind(root, 'hyh', `${formatTemp(MOCK_HISTORY.yesterday.high, units)}${tempUnit(units)}`);
-  bind(root, 'hyl', `${formatTemp(MOCK_HISTORY.yesterday.low, units)}${tempUnit(units)}`);
-  bind(root, 'hwh', `${formatTemp(MOCK_HISTORY.week.high, units)}${tempUnit(units)}`);
-  bind(root, 'hwl', `${formatTemp(MOCK_HISTORY.week.low, units)}${tempUnit(units)}`);
-  bind(root, 'hmh', `${formatTemp(MOCK_HISTORY.month.high, units)}${tempUnit(units)}`);
-  bind(root, 'hml', `${formatTemp(MOCK_HISTORY.month.low, units)}${tempUnit(units)}`);
-  MOCK_SERIES.forEach((temp, index) => {
-    bind(root, `hs${index}`, `${formatTemp(temp, units)}${tempUnit(units)}`);
-    bind(root, `hs${index}k`, seriesLabel(MOCK_SERIES.length - 1 - index, dict));
-    const bar = root.querySelector<HTMLElement>(`[data-bar="${index}"]`);
-    bar?.style.setProperty('--h', seriesHeight(temp, MOCK_SERIES));
+  series.daily.forEach((day, index) => {
+    bind(root, `fd${index}h`, `${formatTemp(day.high, units)}${unit}`);
+    bind(root, `fd${index}l`, `${formatTemp(day.low, units)}${unit}`);
+    bind(root, `fd${index}r`, formatRainPair(day.rain, day.chance, units) || dash());
+    bind(root, `fd${index}k`, forecastDayLabel(day.date, index, dict));
+  });
+  bind(root, 'hyh', `${formatTemp(series.yesterday.high, units)}${unit}`);
+  bind(root, 'hyl', `${formatTemp(series.yesterday.low, units)}${unit}`);
+  bind(root, 'hyr', formatRainAmount(series.yesterday.rain, units));
+  bind(root, 'hwh', `${formatTemp(series.week.high, units)}${unit}`);
+  bind(root, 'hwl', `${formatTemp(series.week.low, units)}${unit}`);
+  bind(root, 'hwr', formatRainAmount(series.week.rain, units));
+  bind(root, 'hmh', `${formatTemp(series.month.high, units)}${unit}`);
+  bind(root, 'hml', `${formatTemp(series.month.low, units)}${unit}`);
+  bind(root, 'hmr', formatRainAmount(series.month.rain, units));
+  const today = series.lastDays[series.lastDays.length - 1]?.date ?? '';
+  const temps = series.lastDays.map((point) => point.temp);
+  series.lastDays.forEach((point, index) => {
+    const label = historyDayParts(point.date, today, dict);
+    bind(root, `hs${index}`, `${formatTemp(point.temp, units)}${unit}`);
+    bind(root, `hs${index}k`, label.name);
+    bind(root, `hs${index}n`, label.day);
+    root.querySelector<HTMLElement>(`[data-bar="${index}"]`)?.style.setProperty('--h', seriesHeight(point.temp, temps));
   });
 }
 
 function setView(root: HTMLElement, view: ConsoleView) {
-  const prev = root.dataset.view;
   root.dataset.view = view;
   root.querySelectorAll<HTMLElement>('[data-panel]').forEach((panel) => {
-    const show = panel.dataset.panel === view;
-    panel.hidden = !show;
-    if (show && prev && prev !== view) {
-      panel.classList.remove('is-entering');
-      void panel.offsetWidth;
-      panel.classList.add('is-entering');
-    }
+    panel.hidden = panel.dataset.panel !== view;
   });
   root.querySelectorAll<HTMLButtonElement>('[data-view]').forEach((btn) => {
     const active = btn.dataset.view === view;
@@ -191,37 +224,60 @@ function dash(): string {
   return '—';
 }
 
-function fillStationForm(root: HTMLElement, station: StationConfig) {
-  const set = (sel: string, value: string) => {
-    const input = root.querySelector<HTMLInputElement>(sel);
-    if (input) input.value = value;
-  };
-  set('[data-station-id]', station.stationId);
-  set('[data-station-name]', station.name);
-  set('[data-station-region]', station.region);
-  set('[data-station-lat]', String(station.lat));
-  set('[data-station-lon]', String(station.lon));
+function formatSite(lat: number, lon: number): string {
+  const ns = lat >= 0 ? 'N' : 'S';
+  const ew = lon >= 0 ? 'E' : 'W';
+  return `${Math.abs(lat).toFixed(2)}${ns} ${Math.abs(lon).toFixed(2)}${ew}`;
 }
 
-function readStationForm(root: HTMLElement): Partial<StationConfig> {
-  const value = (sel: string) => root.querySelector<HTMLInputElement>(sel)?.value ?? '';
-  return {
-    stationId: normalizeStationId(value('[data-station-id]')),
-    name: value('[data-station-name]').trim(),
-    region: value('[data-station-region]').trim(),
-    country: DEFAULT_STATION.country,
-    lat: Number(value('[data-station-lat]').replace(',', '.')),
-    lon: Number(value('[data-station-lon]').replace(',', '.')),
-  };
+function bindStationIdentity(
+  root: HTMLElement,
+  dict: Dictionary,
+  source: WeatherSnapshot['source'] | null,
+  station: { stationId: string; lat: number; lon: number },
+  stationId?: string,
+) {
+  if (source === 'wunderground-pws') {
+    bind(root, 'stationKey', dict.station);
+    bind(root, 'stationId', stationId || station.stationId);
+    return;
+  }
+  bind(root, 'stationKey', dict.site);
+  bind(root, 'stationId', formatSite(station.lat, station.lon));
+}
+
+function formatRainAmount(mm: number | undefined, units: Units): string {
+  if (typeof mm !== 'number' || !Number.isFinite(mm)) return dash();
+  return `${formatPrecip(mm, units)} ${precipUnit(units)}`;
+}
+
+function formatRainPair(mm: number | undefined, chance: number | undefined, units: Units): string {
+  const hasRain = typeof mm === 'number' && Number.isFinite(mm);
+  const hasChance = typeof chance === 'number' && Number.isFinite(chance);
+  const amount = hasRain ? `${formatPrecip(mm, units)} ${precipUnit(units)}` : '';
+  const showChance = hasChance && ((chance ?? 0) > 0 || !hasRain);
+  const pct = showChance ? `${Math.round(chance as number)}%` : '';
+  return [amount, pct].filter(Boolean).join(' · ');
 }
 
 export function initWeatherConsole(root: HTMLElement) {
   let lang = loadLang();
   let units = loadUnits();
   let view = loadView();
-  let station = loadStation();
+  const station = DEFAULT_STATION;
   let snapshot: WeatherSnapshot | null = null;
+  let series: WeatherSeries | null = null;
+  let seriesFailed = false;
+  let seriesPending = false;
+  let showSeriesWait = false;
+  let seriesWaitTimer: number | null = null;
   let failed = false;
+
+  const seriesNote = (dict: Dictionary) => {
+    if (seriesFailed) return dict.noData;
+    if (seriesPending && showSeriesWait) return dict.loading;
+    return '';
+  };
 
   const render = () => {
     const dict = dictionaries[lang];
@@ -231,7 +287,7 @@ export function initWeatherConsole(root: HTMLElement) {
     root.dataset.units = units;
     document.documentElement.lang = lang;
     setView(root, view);
-    bindMocks(root, units, dict);
+    bindSeries(root, series, units, dict, seriesNote(dict));
     root.querySelectorAll<HTMLElement>('[data-lang]').forEach((btn) => {
       const active = btn.dataset.lang === lang;
       btn.classList.toggle('is-active', active);
@@ -267,9 +323,12 @@ export function initWeatherConsole(root: HTMLElement) {
       bind(root, 'gust', dash());
       bind(root, 'direction', dash());
       bind(root, 'cardinal', dash());
+      bind(root, 'pressure', dash());
+      bind(root, 'precipRate', dash());
+      bind(root, 'precipToday', dash());
       bind(root, 'observed', dash());
       bind(root, 'source', dict.noData);
-      bind(root, 'stationId', station.stationId);
+      bindStationIdentity(root, dict, null, station);
       bind(root, 'location', station.name);
       bind(root, 'region', station.region);
       return;
@@ -283,6 +342,17 @@ export function initWeatherConsole(root: HTMLElement) {
     bind(root, 'windUnit', isCalm(metric.windSpeed) ? '' : windUnit(units));
     bind(root, 'humidity', `${Math.round(metric.humidity)}%`);
     bind(root, 'gust', `${formatWind(metric.windGust, units)} ${windUnit(units)}`);
+    bind(
+      root,
+      'pressure',
+      typeof metric.pressure === 'number' ? `${formatPressure(metric.pressure, units)} ${pressureUnit(units)}` : dash(),
+    );
+    bind(root, 'precipRate', `${formatPrecip(snapshot.precipRate, units)} ${precipRateUnit(units)}`);
+    bind(
+      root,
+      'precipToday',
+      typeof metric.precipTotal === 'number' ? `${formatPrecip(metric.precipTotal, units)} ${precipUnit(units)}` : dash(),
+    );
     if (isCalm(metric.windSpeed)) {
       bind(root, 'direction', dict.calm);
       bind(root, 'cardinal', '');
@@ -292,7 +362,7 @@ export function initWeatherConsole(root: HTMLElement) {
     }
     bind(root, 'observed', formatAge(snapshot.observedAt, dict));
     bind(root, 'source', sourceLabel(snapshot.source));
-    bind(root, 'stationId', snapshot.stationId);
+    bindStationIdentity(root, dict, snapshot.source, station, snapshot.stationId);
     bind(root, 'location', snapshot.location.name);
     bind(root, 'region', snapshot.location.region);
     applyDocumentTitle(snapshot.location.name);
@@ -328,7 +398,6 @@ export function initWeatherConsole(root: HTMLElement) {
   const prefs = root.querySelector<HTMLDialogElement>('[data-prefs]');
   const prefsOpen = root.querySelector<HTMLButtonElement>('[data-prefs-open]');
   prefsOpen?.addEventListener('click', () => {
-    fillStationForm(root, station);
     prefs?.showModal();
     prefsOpen.setAttribute('aria-expanded', 'true');
   });
@@ -340,43 +409,6 @@ export function initWeatherConsole(root: HTMLElement) {
     if (event.target === prefs) prefs.close();
   });
 
-  const applyStation = async () => {
-    const drafted = readStationForm(root);
-    let lat = Number(drafted.lat);
-    let lon = Number(drafted.lon);
-    let region = drafted.region ?? '';
-    let country = drafted.country ?? DEFAULT_STATION.country;
-    if ((!Number.isFinite(lat) || !Number.isFinite(lon)) && drafted.name) {
-      const geo = await geocodePlace(drafted.name, lang);
-      if (geo) {
-        lat = geo.lat;
-        lon = geo.lon;
-        region = region || geo.region || '';
-        country = geo.country || country;
-      }
-    }
-    const next = parseStation({ ...drafted, lat, lon, region, country });
-    if (!next) return;
-    station = next;
-    saveStation(station);
-    fillStationForm(root, station);
-    await loadWeather();
-  };
-
-  root.querySelector<HTMLButtonElement>('[data-station-apply]')?.addEventListener('click', () => {
-    void applyStation();
-  });
-  root.querySelector<HTMLButtonElement>('[data-station-reset]')?.addEventListener('click', () => {
-    clearStation();
-    station = DEFAULT_STATION;
-    fillStationForm(root, station);
-    void loadWeather();
-  });
-  root.querySelector<HTMLInputElement>('[data-station-id]')?.addEventListener('blur', (event) => {
-    const input = event.currentTarget as HTMLInputElement;
-    input.value = normalizeStationId(input.value);
-  });
-
   window.setInterval(() => {
     bind(root, 'clock', formatClock(new Date()));
     if (snapshot) bind(root, 'observed', formatAge(snapshot.observedAt, dictionaries[lang]));
@@ -384,15 +416,20 @@ export function initWeatherConsole(root: HTMLElement) {
 
   const loadWeather = async () => {
     applyDocumentTitle(station.name);
+    series = null;
+    seriesFailed = false;
+    seriesPending = true;
+    showSeriesWait = false;
+    if (seriesWaitTimer !== null) window.clearTimeout(seriesWaitTimer);
+    seriesWaitTimer = window.setTimeout(() => {
+      showSeriesWait = true;
+      render();
+    }, 200);
+
     try {
       const response = await fetch(snapshotUrl(), { cache: 'no-store' });
       if (!response.ok) throw new Error(`Snapshot HTTP ${response.status}`);
-      const deployed = (await response.json()) as WeatherSnapshot;
-      if (sameStationId(station.stationId, deployed.stationId)) {
-        snapshot = deployed;
-      } else {
-        snapshot = await fetchOpenMeteoSnapshot(station);
-      }
+      snapshot = (await response.json()) as WeatherSnapshot;
       failed = false;
     } catch (error) {
       console.error(error);
@@ -405,6 +442,27 @@ export function initWeatherConsole(root: HTMLElement) {
         snapshot = null;
       }
     }
+
+    try {
+      if (snapshot?.series) {
+        series = snapshot.series;
+        seriesFailed = false;
+      } else if (snapshot?.source === 'wunderground-pws') {
+        series = null;
+        seriesFailed = true;
+      } else {
+        series = await fetchOpenMeteoSeries(station);
+        seriesFailed = false;
+      }
+    } catch (error) {
+      console.error(error);
+      series = null;
+      seriesFailed = true;
+    }
+    seriesPending = false;
+    showSeriesWait = false;
+    if (seriesWaitTimer !== null) window.clearTimeout(seriesWaitTimer);
+    seriesWaitTimer = null;
     render();
   };
 
@@ -412,7 +470,7 @@ export function initWeatherConsole(root: HTMLElement) {
 
   window.setTimeout(() => {
     root.classList.remove('is-booting');
-  }, 1200);
+  }, 700);
 
   void loadWeather();
 }

@@ -1,7 +1,7 @@
 <section class="panel panel-history" data-panel="history" hidden>
   <header class="panel-head">
-    <h2 class="visually-hidden" data-i18n="history">Històric</h2>
-    <p class="panel-note" data-i18n="sampleNote">Dades simulades. Encara no hi ha sèrie real.</p>
+    <h2 class="visually-hidden" data-i18n="history">History</h2>
+    <p class="panel-note" data-bind="seriesNote" hidden></p>
   </header>
 
   <div class="history-board">
@@ -9,15 +9,19 @@
       <article class="hist-card">
         <div class="data-spine" aria-hidden="true"></div>
         <div class="hist-card-main">
-          <span class="row-label" data-i18n="yesterday">Ahir</span>
+          <span class="row-label" data-i18n="yesterday">Yesterday</span>
           <div class="hist-card-stats">
             <div class="hist-stat">
-              <span class="hist-stat-k" data-i18n="high">Màx</span>
+              <span class="hist-stat-k" data-i18n="high">High</span>
               <span class="hist-stat-v" data-bind="hyh">—</span>
             </div>
             <div class="hist-stat">
-              <span class="hist-stat-k" data-i18n="low">Mín</span>
+              <span class="hist-stat-k" data-i18n="low">Low</span>
               <span class="hist-stat-v" data-bind="hyl">—</span>
+            </div>
+            <div class="hist-stat">
+              <span class="hist-stat-k" data-i18n="rain">Rain</span>
+              <span class="hist-stat-v" data-bind="hyr">—</span>
             </div>
           </div>
         </div>
@@ -25,15 +29,19 @@
       <article class="hist-card">
         <div class="data-spine" aria-hidden="true"></div>
         <div class="hist-card-main">
-          <span class="row-label" data-i18n="week">7 dies</span>
+          <span class="row-label" data-i18n="week">7 days</span>
           <div class="hist-card-stats">
             <div class="hist-stat">
-              <span class="hist-stat-k" data-i18n="high">Màx</span>
+              <span class="hist-stat-k" data-i18n="high">High</span>
               <span class="hist-stat-v" data-bind="hwh">—</span>
             </div>
             <div class="hist-stat">
-              <span class="hist-stat-k" data-i18n="low">Mín</span>
+              <span class="hist-stat-k" data-i18n="low">Low</span>
               <span class="hist-stat-v" data-bind="hwl">—</span>
+            </div>
+            <div class="hist-stat">
+              <span class="hist-stat-k" data-i18n="rain">Rain</span>
+              <span class="hist-stat-v" data-bind="hwr">—</span>
             </div>
           </div>
         </div>
@@ -41,15 +49,19 @@
       <article class="hist-card">
         <div class="data-spine" aria-hidden="true"></div>
         <div class="hist-card-main">
-          <span class="row-label" data-i18n="month">30 dies</span>
+          <span class="row-label" data-i18n="month">30 days</span>
           <div class="hist-card-stats">
             <div class="hist-stat">
-              <span class="hist-stat-k" data-i18n="high">Màx</span>
+              <span class="hist-stat-k" data-i18n="high">High</span>
               <span class="hist-stat-v" data-bind="hmh">—</span>
             </div>
             <div class="hist-stat">
-              <span class="hist-stat-k" data-i18n="low">Mín</span>
+              <span class="hist-stat-k" data-i18n="low">Low</span>
               <span class="hist-stat-v" data-bind="hml">—</span>
+            </div>
+            <div class="hist-stat">
+              <span class="hist-stat-k" data-i18n="rain">Rain</span>
+              <span class="hist-stat-v" data-bind="hmr">—</span>
             </div>
           </div>
         </div>
@@ -57,7 +69,7 @@
     </div>
 
     <div class="panel-block history-series">
-      <h3 class="block-label" data-i18n="series">Últims dies</h3>
+      <h3 class="block-label" data-i18n="series">Last days</h3>
       <div class="series-block">
         <div class="bar-strip">
           <div class="hist-col">
@@ -91,13 +103,13 @@
         </div>
         <div class="series-rail" aria-hidden="true"></div>
         <div class="series-keys">
-          <span class="hist-col-k" data-bind="hs0k">—</span>
-          <span class="hist-col-k" data-bind="hs1k">—</span>
-          <span class="hist-col-k" data-bind="hs2k">—</span>
-          <span class="hist-col-k" data-bind="hs3k">—</span>
-          <span class="hist-col-k" data-bind="hs4k">—</span>
-          <span class="hist-col-k" data-bind="hs5k">—</span>
-          <span class="hist-col-k" data-bind="hs6k">—</span>
+          <span class="hist-col-k"><span data-bind="hs0k">—</span><span class="hist-col-n" data-bind="hs0n"></span></span>
+          <span class="hist-col-k"><span data-bind="hs1k">—</span><span class="hist-col-n" data-bind="hs1n"></span></span>
+          <span class="hist-col-k"><span data-bind="hs2k">—</span><span class="hist-col-n" data-bind="hs2n"></span></span>
+          <span class="hist-col-k"><span data-bind="hs3k">—</span><span class="hist-col-n" data-bind="hs3n"></span></span>
+          <span class="hist-col-k"><span data-bind="hs4k">—</span><span class="hist-col-n" data-bind="hs4n"></span></span>
+          <span class="hist-col-k"><span data-bind="hs5k">—</span><span class="hist-col-n" data-bind="hs5n"></span></span>
+          <span class="hist-col-k"><span data-bind="hs6k">—</span><span class="hist-col-n" data-bind="hs6n"></span></span>
         </div>
       </div>
     </div>
