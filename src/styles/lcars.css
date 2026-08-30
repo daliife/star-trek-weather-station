@@ -2,21 +2,21 @@
   --lcars-bg: #000000;
   --lcars-text: #f3e6c6;
   --lcars-muted: #8a7d68;
-  --golden-tanoi: #e8a04c;
-  --almond: #f0c9a8;
+  --golden-tanoi: #eb943a;
+  --almond: #d29b7f;
   --pale-canary: #fff3a0;
-  --atomic-tangerine: #e09068;
-  --anakiwa: #8eb8e0;
-  --periwinkle: #9a9ad0;
-  --blue-bell: #8888b8;
-  --danub: #6a88b4;
-  --african-violet: #c090c0;
-  --lilac: #c07898;
-  --red-alert: #cc6666;
+  --atomic-tangerine: #ea9c72;
+  --anakiwa: #8899ff;
+  --periwinkle: #8a72a7;
+  --blue-bell: #6a7ae0;
+  --danub: #5566cc;
+  --african-violet: #baa4e5;
+  --lilac: #c082a9;
+  --red-alert: #cf4f4f;
   --offline: #4a4a66;
   --inactive-station: #8a5318;
-  --inactive-forecast: #3d3d70;
-  --inactive-history: #5a3058;
+  --inactive-forecast: #3d3558;
+  --inactive-history: #4a3a6a;
   --inactive-prefs: #3a4a5c;
   --gap: 0.28rem;
   --rail: 12.5rem;
@@ -25,6 +25,7 @@
   --elbow: 10.2rem;
   --radius-pill: 2.2rem;
   --radius-elbow: 4.55rem;
+  --radius-elbow-inner: 2rem;
   --boot-delay: 0.32s;
   --boot-fade: 0.36s;
   --font: 'Antonio', 'Arial Narrow', 'Helvetica Condensed', sans-serif;
@@ -103,15 +104,17 @@ button:disabled {
   position: relative;
 }
 
-/* Composite LCARS L: spine + arm, square inner corner, curve on the outside only. */
+/* Composite LCARS L: spine + arm, outer curve on the spine, concave fillet at the inner join. */
 .elbow-nw,
 .elbow-sw {
   position: relative;
   z-index: 1;
+  overflow: visible;
   pointer-events: none;
 }
 
 .elbow-nw {
+  --elbow-color: var(--golden-tanoi);
   grid-column: 1 / 3;
   grid-row: 1;
   display: grid;
@@ -122,6 +125,7 @@ button:disabled {
 }
 
 .elbow-sw {
+  --elbow-color: var(--danub);
   grid-column: 1 / 3;
   grid-row: 3;
   display: grid;
@@ -132,20 +136,61 @@ button:disabled {
 }
 
 .elbow-spine {
-  background: var(--golden-tanoi);
+  grid-column: 1;
+  grid-row: 1 / -1;
+  background: var(--elbow-color);
 }
 
 .elbow-nw .elbow-spine {
-  grid-column: 1;
-  grid-row: 1 / -1;
   border-radius: var(--radius-elbow) 0 0 0;
 }
 
 .elbow-sw .elbow-spine {
-  grid-column: 1;
-  grid-row: 1 / -1;
-  background: var(--danub);
   border-radius: 0 0 0 var(--radius-elbow);
+}
+
+/*
+ * The inner join is concave: the bar has to bulge into the black notch, which
+ * border-radius cannot express. A square of bar colour with a background-coloured
+ * disc parked on its far corner leaves exactly that quarter-circle fillet.
+ * The square sits flush on the spine and arm edges so the disc stays tangent to
+ * both; any offset here shows up as the curve overshooting into the bars.
+ */
+.elbow-fillet {
+  position: absolute;
+  z-index: 2;
+  left: var(--rail);
+  width: var(--radius-elbow-inner);
+  height: var(--radius-elbow-inner);
+  overflow: hidden;
+  background: var(--elbow-color);
+  pointer-events: none;
+}
+
+.elbow-fillet::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: calc(var(--radius-elbow-inner) * 2);
+  height: calc(var(--radius-elbow-inner) * 2);
+  border-radius: 50%;
+  background: var(--lcars-bg);
+}
+
+.elbow-nw .elbow-fillet {
+  top: var(--bar);
+}
+
+.elbow-nw .elbow-fillet::after {
+  top: 0;
+}
+
+.elbow-sw .elbow-fillet {
+  bottom: var(--bar);
+}
+
+.elbow-sw .elbow-fillet::after {
+  bottom: 0;
 }
 
 .elbow-nw .elbow-arm {
@@ -163,6 +208,7 @@ button:disabled {
   grid-row: 2;
   display: flex;
   flex-direction: column;
+  gap: var(--gap);
   min-height: 0;
   padding-top: calc(var(--elbow) - var(--bar));
   padding-bottom: calc(var(--elbow) - var(--bar));
@@ -221,8 +267,7 @@ button:disabled {
 
 .pill-prefs {
   flex: 0 0 auto;
-  margin-top: auto;
-  min-height: 2.55rem;
+  min-height: 3.6rem;
   background: var(--inactive-prefs);
   color: #a8c0d0;
   font-size: 1.05rem;
@@ -298,7 +343,7 @@ button:disabled {
 
 @media (hover: hover) {
   .pill-station:hover {
-    background: #f0b05c;
+    background: #f0a85a;
     color: #1a0f00;
   }
 
@@ -308,23 +353,23 @@ button:disabled {
   }
 
   .pill-forecast:hover {
-    background: #b0b0e4;
+    background: #a888c0;
     color: #0b0618;
   }
 
   .pill-forecast:not(.is-active):hover {
-    background: #4e4e88;
-    color: #c8c8e8;
+    background: #4e3d68;
+    color: #d8c8e8;
   }
 
   .pill-history:hover {
-    background: #d0a8d0;
+    background: #d4c4f5;
     color: #1a0814;
   }
 
   .pill-history:not(.is-active):hover {
-    background: #704070;
-    color: #e0c8d8;
+    background: #5a4880;
+    color: #e8dcf8;
   }
 
   .pill-prefs:hover {
@@ -442,9 +487,9 @@ button:disabled {
   justify-content: flex-end;
   width: 100%;
   min-width: 0;
-  padding: 0.15rem 0.15rem 0.28rem 0;
+  padding: 0.08rem 0.15rem 0.22rem 0;
   color: var(--pale-canary);
-  font-size: 2rem;
+  font-size: 1.85rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: 'tnum' 1, 'lnum' 1;
@@ -1197,10 +1242,13 @@ button:disabled {
   letter-spacing: 0.16em;
 }
 
-.console[data-ops='error'] .elbow-nw .elbow-spine,
+.console[data-ops='error'] .elbow-nw,
+.console[data-state='error'] .elbow-nw,
+.console[data-state='error'] .elbow-sw {
+  --elbow-color: var(--red-alert);
+}
+
 .console[data-ops='error'] .seg-location,
-.console[data-state='error'] .elbow-nw .elbow-spine,
-.console[data-state='error'] .elbow-sw .elbow-spine,
 .console[data-state='error'] .seg-location,
 .console[data-state='error'] .seg-source,
 .console[data-state='error'] .seg-link {
@@ -1208,7 +1256,10 @@ button:disabled {
   color: #1a0000;
 }
 
-.console[data-ops='expired'] .elbow-nw .elbow-spine,
+.console[data-ops='expired'] .elbow-nw {
+  --elbow-color: var(--atomic-tangerine);
+}
+
 .console[data-ops='expired'] .seg-location,
 .console[data-ops='expired'] .seg-observed,
 .console[data-link='stale'] .seg-link {
@@ -1216,7 +1267,10 @@ button:disabled {
   color: #1a0a00;
 }
 
-.console[data-ops='precip'] .elbow-nw .elbow-spine,
+.console[data-ops='precip'] .elbow-nw {
+  --elbow-color: var(--anakiwa);
+}
+
 .console[data-ops='precip'] .seg-location {
   background: var(--anakiwa);
   color: #041018;
@@ -1231,11 +1285,25 @@ button:disabled {
     padding: 0.55rem 0.5rem;
   }
 
+  /* The rail spans every row, so let it hug its buttons and follow the scroll
+     instead of stretching the nav to the full height of the panel content. */
   .rail {
     grid-column: 1;
     grid-row: 1 / 6;
+    position: sticky;
+    top: 0.55rem;
+    align-self: start;
     padding-top: 0;
     padding-bottom: 0;
+  }
+
+  .rail .pill {
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    min-height: 3rem;
+    padding: 0.3rem 0.5rem 0.24rem;
+    text-align: center;
   }
 
   .elbow-nw {
@@ -1245,8 +1313,8 @@ button:disabled {
     display: block;
   }
 
-  .elbow-nw .elbow-spine,
-  .elbow-sw .elbow-spine {
+  .elbow-spine,
+  .elbow-fillet {
     display: none;
   }
 
@@ -1278,6 +1346,14 @@ button:disabled {
   .header .chrono,
   .footer .finger {
     height: auto;
+  }
+
+  /* Two fingers share the header row here, and the coordinates are the widest
+     string in the console, so they need a tighter box than the desktop pills. */
+  .header .seg {
+    padding-left: 0.9rem;
+    padding-right: 0.95rem;
+    font-size: 0.86rem;
   }
 
   .stage {
@@ -1316,6 +1392,12 @@ button:disabled {
     display: none;
   }
 
+  .pill-prefs {
+    margin-top: 0;
+    min-height: 2.6rem;
+    font-size: 0.78rem;
+  }
+
   .panel-station,
   .forecast-board {
     grid-template-columns: 1fr;
@@ -1338,8 +1420,62 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
-  .panel-forecast .row {
-    grid-template-columns: minmax(7rem, 0.85fr) auto;
+  /* Label columns keep a rem-based minimum on desktop; at this width that
+     minimum is wider than the panel, so the values spill past the pill. */
+  .panel-forecast .row,
+  .cluster-daily .row,
+  .metric-tile {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.45rem;
+    padding-right: 0.95rem;
+    padding-left: 0.7rem;
+  }
+
+  .panel-forecast .row-label {
+    font-size: 0.9rem;
+    letter-spacing: 0.06em;
+  }
+
+  .row-value,
+  .metric-value {
+    font-size: 1.3rem;
+  }
+
+  .row-forecast {
+    gap: 0.4rem;
+  }
+
+  /* Day name plus high/low/rain will not sit side by side here, so stack them. */
+  .cluster-daily .row {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    row-gap: 0.3rem;
+    padding-top: 0.45rem;
+    padding-bottom: 0.4rem;
+  }
+
+  .hist-stat-v {
+    font-size: 1.1rem;
+    white-space: nowrap;
+  }
+
+  .bar-strip,
+  .series-keys {
+    gap: 0.28rem;
+  }
+
+  .hist-val {
+    font-size: 0.62rem;
+    letter-spacing: 0.01em;
+  }
+
+  /* Weekday names need ~55px in a 32px column, so the axis keeps the date only. */
+  .hist-col-k > span:not(.hist-col-n) {
+    display: none;
+  }
+
+  .hist-col-n {
+    font-size: 0.78rem;
   }
 
   .pill {

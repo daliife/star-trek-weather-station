@@ -12,6 +12,7 @@ import Readout from './Readout.astro';
   <h1 class="visually-hidden">Star Trek Weather Station · {station.name}</h1>
   <div class="elbow elbow-nw">
     <div class="elbow-spine" aria-hidden="true"></div>
+    <span class="elbow-fillet" aria-hidden="true"></span>
     <div class="elbow-arm seg seg-location">
       <span class="seg-k visually-hidden" data-bind="region">{station.region}</span>
       <span data-bind="location">{station.name}</span>
@@ -29,10 +30,10 @@ import Readout from './Readout.astro';
       <button class="pill pill-nav pill-history" type="button" data-view="history" aria-pressed="false" aria-controls="panel-history">
         <span data-i18n="history">History</span>
       </button>
-      <button class="pill pill-prefs" type="button" data-prefs-open aria-haspopup="dialog" aria-controls="prefs-dialog" aria-expanded="false">
-        <span data-i18n="preferences">Preferences</span>
-      </button>
     </nav>
+    <button class="pill pill-prefs" type="button" data-prefs-open aria-haspopup="dialog" aria-controls="prefs-dialog" aria-expanded="false">
+      <span data-i18n="preferences">Preferences</span>
+    </button>
   </aside>
 
   <header class="header">
@@ -45,7 +46,7 @@ import Readout from './Readout.astro';
       <span data-bind="observed">—</span>
     </div>
     <div class="chrono">
-      <span class="chrono-k visually-hidden" data-i18n="localTime">Local time</span>
+      <span class="visually-hidden" data-i18n="localTime">Local time</span>
       <span data-bind="clock">00:00:00</span>
     </div>
   </header>
@@ -64,6 +65,7 @@ import Readout from './Readout.astro';
 
   <div class="elbow elbow-sw">
     <div class="elbow-spine" aria-hidden="true"></div>
+    <span class="elbow-fillet" aria-hidden="true"></span>
     <div class="elbow-arm seg seg-source">
       <span class="seg-k visually-hidden" data-i18n="source">Source</span>
       <span data-bind="source">WunderGround</span>
