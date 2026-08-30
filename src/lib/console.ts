@@ -1,6 +1,18 @@
 import { dictionaries, isLang } from './i18n';
 import type { Dictionary } from './i18n';
-import type { ConsoleView, Lang, LinkStatus, OpsStatus, Units, WeatherSnapshot } from './types';
+import {
+  DEFAULT_STATION,
+  applyDocumentTitle,
+  clearStation,
+  fetchOpenMeteoSnapshot,
+  geocodePlace,
+  loadStation,
+  normalizeStationId,
+  parseStation,
+  sameStationId,
+  saveStation,
+} from './station';
+import type { ConsoleView, Lang, LinkStatus, OpsStatus, StationConfig, Units, WeatherSnapshot } from './types';
 import {
   cardinalIndex,
   formatAge,
@@ -179,10 +191,35 @@ function dash(): string {
   return '—';
 }
 
+function fillStationForm(root: HTMLElement, station: StationConfig) {
+  const set = (sel: string, value: string) => {
+    const input = root.querySelector<HTMLInputElement>(sel);
+    if (input) input.value = value;
+  };
+  set('[data-station-id]', station.stationId);
+  set('[data-station-name]', station.name);
+  set('[data-station-region]', station.region);
+  set('[data-station-lat]', String(station.lat));
+  set('[data-station-lon]', String(station.lon));
+}
+
+function readStationForm(root: HTMLElement): Partial<StationConfig> {
+  const value = (sel: string) => root.querySelector<HTMLInputElement>(sel)?.value ?? '';
+  return {
+    stationId: normalizeStationId(value('[data-station-id]')),
+    name: value('[data-station-name]').trim(),
+    region: value('[data-station-region]').trim(),
+    country: DEFAULT_STATION.country,
+    lat: Number(value('[data-station-lat]').replace(',', '.')),
+    lon: Number(value('[data-station-lon]').replace(',', '.')),
+  };
+}
+
 export function initWeatherConsole(root: HTMLElement) {
   let lang = loadLang();
   let units = loadUnits();
   let view = loadView();
+  let station = loadStation();
   let snapshot: WeatherSnapshot | null = null;
   let failed = false;
 
@@ -206,6 +243,7 @@ export function initWeatherConsole(root: HTMLElement) {
       btn.setAttribute('aria-pressed', String(active));
     });
 
+    applyDocumentTitle(snapshot?.location.name ?? station.name);
     bind(root, 'clock', formatClock(new Date()));
 
     const { ops, link } = snapshot || failed
@@ -231,9 +269,9 @@ export function initWeatherConsole(root: HTMLElement) {
       bind(root, 'cardinal', dash());
       bind(root, 'observed', dash());
       bind(root, 'source', dict.noData);
-      bind(root, 'stationId', 'ICABAC4');
-      bind(root, 'location', 'Cabacés');
-      bind(root, 'region', 'Tarragona');
+      bind(root, 'stationId', station.stationId);
+      bind(root, 'location', station.name);
+      bind(root, 'region', station.region);
       return;
     }
 
@@ -257,6 +295,7 @@ export function initWeatherConsole(root: HTMLElement) {
     bind(root, 'stationId', snapshot.stationId);
     bind(root, 'location', snapshot.location.name);
     bind(root, 'region', snapshot.location.region);
+    applyDocumentTitle(snapshot.location.name);
   };
 
   root.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach((btn) => {
@@ -289,6 +328,7 @@ export function initWeatherConsole(root: HTMLElement) {
   const prefs = root.querySelector<HTMLDialogElement>('[data-prefs]');
   const prefsOpen = root.querySelector<HTMLButtonElement>('[data-prefs-open]');
   prefsOpen?.addEventListener('click', () => {
+    fillStationForm(root, station);
     prefs?.showModal();
     prefsOpen.setAttribute('aria-expanded', 'true');
   });
@@ -300,10 +340,73 @@ export function initWeatherConsole(root: HTMLElement) {
     if (event.target === prefs) prefs.close();
   });
 
+  const applyStation = async () => {
+    const drafted = readStationForm(root);
+    let lat = Number(drafted.lat);
+    let lon = Number(drafted.lon);
+    let region = drafted.region ?? '';
+    let country = drafted.country ?? DEFAULT_STATION.country;
+    if ((!Number.isFinite(lat) || !Number.isFinite(lon)) && drafted.name) {
+      const geo = await geocodePlace(drafted.name, lang);
+      if (geo) {
+        lat = geo.lat;
+        lon = geo.lon;
+        region = region || geo.region || '';
+        country = geo.country || country;
+      }
+    }
+    const next = parseStation({ ...drafted, lat, lon, region, country });
+    if (!next) return;
+    station = next;
+    saveStation(station);
+    fillStationForm(root, station);
+    await loadWeather();
+  };
+
+  root.querySelector<HTMLButtonElement>('[data-station-apply]')?.addEventListener('click', () => {
+    void applyStation();
+  });
+  root.querySelector<HTMLButtonElement>('[data-station-reset]')?.addEventListener('click', () => {
+    clearStation();
+    station = DEFAULT_STATION;
+    fillStationForm(root, station);
+    void loadWeather();
+  });
+  root.querySelector<HTMLInputElement>('[data-station-id]')?.addEventListener('blur', (event) => {
+    const input = event.currentTarget as HTMLInputElement;
+    input.value = normalizeStationId(input.value);
+  });
+
   window.setInterval(() => {
     bind(root, 'clock', formatClock(new Date()));
     if (snapshot) bind(root, 'observed', formatAge(snapshot.observedAt, dictionaries[lang]));
   }, 1000);
+
+  const loadWeather = async () => {
+    applyDocumentTitle(station.name);
+    try {
+      const response = await fetch(snapshotUrl(), { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Snapshot HTTP ${response.status}`);
+      const deployed = (await response.json()) as WeatherSnapshot;
+      if (sameStationId(station.stationId, deployed.stationId)) {
+        snapshot = deployed;
+      } else {
+        snapshot = await fetchOpenMeteoSnapshot(station);
+      }
+      failed = false;
+    } catch (error) {
+      console.error(error);
+      try {
+        snapshot = await fetchOpenMeteoSnapshot(station);
+        failed = false;
+      } catch (fallbackError) {
+        console.error(fallbackError);
+        failed = true;
+        snapshot = null;
+      }
+    }
+    render();
+  };
 
   render();
 
@@ -311,17 +414,5 @@ export function initWeatherConsole(root: HTMLElement) {
     root.classList.remove('is-booting');
   }, 1200);
 
-  fetch(snapshotUrl(), { cache: 'no-store' })
-    .then(async (response) => {
-      if (!response.ok) throw new Error(`Snapshot HTTP ${response.status}`);
-      snapshot = (await response.json()) as WeatherSnapshot;
-      failed = false;
-      render();
-    })
-    .catch((error) => {
-      console.error(error);
-      failed = true;
-      snapshot = null;
-      render();
-    });
+  void loadWeather();
 }

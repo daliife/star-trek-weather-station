@@ -12,10 +12,21 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_PATH = resolve(ROOT, 'public/data/current.json');
-const STATION_ID = 'ICABAC4';
-const LOCATION = { name: 'Cabacés', region: 'Tarragona', country: 'ES' };
-const FALLBACK_LAT = 41.25;
-const FALLBACK_LON = 0.73;
+const STATION_PATH = resolve(ROOT, 'src/config/station.json');
+
+function loadStationConfig() {
+  const defaults = JSON.parse(readFileSync(STATION_PATH, 'utf8'));
+  const lat = Number(process.env.STATION_LAT ?? defaults.lat);
+  const lon = Number(process.env.STATION_LON ?? defaults.lon);
+  return {
+    stationId: (process.env.WU_STATION_ID ?? defaults.stationId).trim().toUpperCase(),
+    name: (process.env.STATION_NAME ?? defaults.name).trim(),
+    region: (process.env.STATION_REGION ?? defaults.region).trim(),
+    country: (process.env.STATION_COUNTRY ?? defaults.country).trim(),
+    lat,
+    lon,
+  };
+}
 
 function loadEnv() {
   const envPath = resolve(ROOT, '.env');
@@ -69,9 +80,9 @@ async function fetchJson(url) {
   return { response, body, text };
 }
 
-async function fetchWunderground(apiKey) {
+async function fetchWunderground(apiKey, station) {
   const url = new URL('https://api.weather.com/v2/pws/observations/current');
-  url.searchParams.set('stationId', STATION_ID);
+  url.searchParams.set('stationId', station.stationId);
   url.searchParams.set('format', 'json');
   url.searchParams.set('units', 'm');
   url.searchParams.set('numericPrecision', 'decimal');
@@ -81,7 +92,7 @@ async function fetchWunderground(apiKey) {
 
   if (response.status === 401 || response.status === 403) {
     const err = new Error(
-      `WU key cannot read station ${STATION_ID} (HTTP ${response.status}). Contributor keys are often limited to stations owned by that account.`,
+      `WU key cannot read station ${station.stationId} (HTTP ${response.status}). Contributor keys are often limited to stations owned by that account.`,
     );
     err.code = 'WU_FORBIDDEN';
     err.detail = typeof body === 'string' ? body : JSON.stringify(body);
@@ -94,10 +105,10 @@ async function fetchWunderground(apiKey) {
 
   const obs = body?.observations?.[0];
   if (!obs) {
-    throw new Error(`WU response had no observations for ${STATION_ID}.`);
+    throw new Error(`WU response had no observations for ${station.stationId}.`);
   }
-  if (obs.stationID && obs.stationID !== STATION_ID) {
-    throw new Error(`WU returned station ${obs.stationID}, expected ${STATION_ID}.`);
+  if (obs.stationID && obs.stationID !== station.stationId) {
+    throw new Error(`WU returned station ${obs.stationID}, expected ${station.stationId}.`);
   }
 
   const metric = obs.metric ?? {};
@@ -105,8 +116,8 @@ async function fetchWunderground(apiKey) {
 
   return {
     source: 'wunderground-pws',
-    stationId: STATION_ID,
-    location: LOCATION,
+    stationId: station.stationId,
+    location: { name: station.name, region: station.region, country: station.country },
     fetchedAt: isoNow(),
     observedAt: obs.obsTimeUtc ?? isoNow(),
     status: 'ok',
@@ -122,10 +133,10 @@ async function fetchWunderground(apiKey) {
   };
 }
 
-async function fetchOpenMeteo() {
+async function fetchOpenMeteo(station) {
   const url = new URL('https://api.open-meteo.com/v1/forecast');
-  url.searchParams.set('latitude', String(FALLBACK_LAT));
-  url.searchParams.set('longitude', String(FALLBACK_LON));
+  url.searchParams.set('latitude', String(station.lat));
+  url.searchParams.set('longitude', String(station.lon));
   url.searchParams.set(
     'current',
     'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,precipitation',
@@ -144,8 +155,8 @@ async function fetchOpenMeteo() {
 
   return {
     source: 'open-meteo',
-    stationId: STATION_ID,
-    location: LOCATION,
+    stationId: station.stationId,
+    location: { name: station.name, region: station.region, country: station.country },
     fetchedAt: isoNow(),
     // Open-Meteo current.time is a model hour, not a PWS observation.
     // Use fetch time so the console does not mark a live fallback as stale.
@@ -165,6 +176,7 @@ async function fetchOpenMeteo() {
 
 async function main() {
   loadEnv();
+  const station = loadStationConfig();
   const apiKey = process.env.WU_API_KEY?.trim();
   const inCi = process.env.GITHUB_ACTIONS === 'true';
 
@@ -174,19 +186,19 @@ async function main() {
       console.warn(`${message} Leaving sample public/data/current.json in place for local UI work.`);
       return;
     }
-    console.warn(`${message} Falling back to Open-Meteo (${FALLBACK_LAT}N, ${FALLBACK_LON}E).`);
-    writeSnapshot(await fetchOpenMeteo());
+    console.warn(`${message} Falling back to Open-Meteo (${station.lat}N, ${station.lon}E) for ${station.stationId}.`);
+    writeSnapshot(await fetchOpenMeteo(station));
     return;
   }
 
   try {
-    writeSnapshot(await fetchWunderground(apiKey));
+    writeSnapshot(await fetchWunderground(apiKey, station));
   } catch (error) {
     if (error?.code === 'WU_FORBIDDEN') {
       console.error(error.message);
       if (error.detail) console.error(error.detail);
-      console.warn(`Falling back to Open-Meteo (${FALLBACK_LAT}N, ${FALLBACK_LON}E).`);
-      writeSnapshot(await fetchOpenMeteo());
+      console.warn(`Falling back to Open-Meteo (${station.lat}N, ${station.lon}E) for ${station.stationId}.`);
+      writeSnapshot(await fetchOpenMeteo(station));
       return;
     }
     console.error('Weather fetch failed.');

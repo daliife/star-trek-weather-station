@@ -1,5 +1,6 @@
 ---
 import WeatherConsole from '../components/WeatherConsole.astro';
+import station from '../config/station.json';
 import '@fontsource/antonio/400.css';
 import '@fontsource/antonio/700.css';
 import '../styles/lcars.css';
@@ -10,8 +11,8 @@ import '../styles/lcars.css';
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
-    <meta name="description" content="LCARS current conditions console for Cabacés PWS ICABAC4." />
-    <title>Star Trek Weather Station · Cabacés</title>
+    <meta name="description" content={`LCARS current conditions console for ${station.name} PWS ${station.stationId}.`} />
+    <title>Star Trek Weather Station · {station.name}</title>
   </head>
   <body>
     <WeatherConsole />

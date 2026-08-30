@@ -2,6 +2,15 @@ export type Lang = 'ca' | 'es' | 'en';
 export type Units = 'metric' | 'imperial';
 export type WeatherSource = 'wunderground-pws' | 'open-meteo';
 
+export interface StationConfig {
+  stationId: string;
+  name: string;
+  region: string;
+  country: string;
+  lat: number;
+  lon: number;
+}
+
 export interface WeatherSnapshot {
   source: WeatherSource;
   stationId: string;

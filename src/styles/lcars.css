@@ -864,8 +864,8 @@ button:disabled {
 }
 
 .prefs-dialog {
-  width: min(28rem, calc(100vw - 2rem));
-  max-width: 28rem;
+  width: min(32rem, calc(100vw - 2rem));
+  max-width: 32rem;
   margin: auto;
   padding: 0;
   border: 0;
@@ -931,6 +931,46 @@ button:disabled {
   color: var(--anakiwa);
   font-size: 0.85rem;
   letter-spacing: 0.16em;
+}
+
+.prefs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+}
+
+.prefs-field-k {
+  color: var(--lcars-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+}
+
+.prefs-input {
+  min-height: 2.55rem;
+  padding: 0.35rem 1rem 0.28rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: #1a1a28;
+  color: var(--pale-canary);
+  font: inherit;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.prefs-input-place {
+  text-transform: none;
+}
+
+.prefs-input:focus-visible {
+  outline: 0.16rem solid var(--pale-canary);
+  outline-offset: 0.16rem;
+}
+
+.prefs-coords,
+.prefs-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
 }
 
 .prefs-dialog .pill-sm {

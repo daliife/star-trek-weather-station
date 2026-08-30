@@ -28,7 +28,7 @@ GitHub Pages cannot keep a secret. v1 therefore:
 2. Runs `scripts/fetch-weather.mjs` to write a sanitized snapshot to `public/data/current.json`.
 3. Builds Astro and deploys `dist/`. The browser only loads that JSON.
 
-Primary source: [PWS current observations](https://developer.weather.com/docs/openapi/pws-observations-current-conditions-2-0/get-v2-pws-observations-current-by-stationid) for station `ICABAC4` (`units=m`). Contributor keys are often limited to stations owned by that account. If the key is missing in CI or the request returns 401/403, the script falls back to [Open-Meteo](https://open-meteo.com/) at 41.25°N, 0.73°E. The footer source badge shows which provider was used. We do not scrape wunderground.com.
+Primary source: [PWS current observations](https://developer.weather.com/docs/openapi/pws-observations-current-conditions-2-0/get-v2-pws-observations-current-by-stationid) for the station in `src/config/station.json` (default `ICABAC4`, `units=m`). Override with `WU_STATION_ID` / `STATION_*` env vars. Contributor keys are often limited to stations owned by that account. If the key is missing in CI or the request returns 401/403, the script falls back to [Open-Meteo](https://open-meteo.com/) at the configured coordinates. In the console, Preferències can point at another PWS; if it is not the server snapshot, the browser queries Open-Meteo. The footer source badge shows which provider was used. We do not scrape wunderground.com.
 
 The PWS payload has no sky-condition phrase. The center readout is temperature. A status pill shows `NOMINAL` / `PRECIP` (from `precipRate`) / `DATA EXPIRED` / `OFFLINE`. The footer link state is `ONLINE` / `STALE` / `NO DATA` (stale if the observation is older than about 30 minutes).
 

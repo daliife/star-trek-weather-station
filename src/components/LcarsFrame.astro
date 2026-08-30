@@ -1,4 +1,5 @@
 ---
+import station from '../config/station.json';
 import DataGrid from './DataGrid.astro';
 import ForecastPanel from './ForecastPanel.astro';
 import HistoryPanel from './HistoryPanel.astro';
@@ -10,8 +11,8 @@ import Readout from './Readout.astro';
   <div class="elbow elbow-nw">
     <div class="elbow-spine" aria-hidden="true"></div>
     <div class="seg seg-location">
-      <span class="seg-k" data-bind="region">Tarragona</span>
-      <span data-bind="location">Cabacés</span>
+      <span class="seg-k" data-bind="region">{station.region}</span>
+      <span data-bind="location">{station.name}</span>
     </div>
   </div>
 
@@ -35,7 +36,7 @@ import Readout from './Readout.astro';
   <header class="header">
     <div class="seg seg-id">
       <span class="seg-k" data-i18n="station">Estació</span>
-      <span data-bind="stationId">ICABAC4</span>
+      <span data-bind="stationId">{station.stationId}</span>
     </div>
     <div class="seg seg-observed">
       <span class="seg-k" data-i18n="observed">Lectura</span>
