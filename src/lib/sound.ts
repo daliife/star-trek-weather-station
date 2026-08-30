@@ -30,20 +30,20 @@ export function playHover(): void {
     const now = performance.now();
     if (now - lastHoverAt < 80) return;
     lastHoverAt = now;
-    chirp({ freq: 1880 + Math.random() * 220, dur: 0.016, gain: 0.055, type: 'sine' });
+    chirp({ freq: 2050, dur: 0.05, gain: 0.055, type: 'sine' });
   });
 }
 
 export function playKey(): void {
   whenReady(() => {
-    chirp({ freq: 1480, freqEnd: 880, dur: 0.058, gain: 0.15, type: 'sine' });
+    chirp({ freq: 3060, dur: 0.075, gain: 0.22, type: 'sine' });
   });
 }
 
 export function playView(): void {
   whenReady(() => {
-    chirp({ freq: 1175, dur: 0.042, gain: 0.15, type: 'triangle' });
-    chirp({ freq: 1568, dur: 0.072, gain: 0.13, type: 'sine', delay: 0.052 });
+    chirp({ freq: 1227, dur: 0.055, gain: 0.16, type: 'sine' });
+    chirp({ freq: 2455, dur: 0.09, gain: 0.12, type: 'sine', delay: 0.04 });
   });
 }
 
