@@ -1,6 +1,14 @@
 import { dictionaries, isLang } from './i18n';
 import type { Dictionary } from './i18n';
 import {
+  initSound,
+  playHover,
+  playKey,
+  playView,
+  setSoundEnabled,
+  unlockSound,
+} from './sound';
+import {
   DEFAULT_STATION,
   applyDocumentTitle,
   fetchOpenMeteoSeries,
@@ -71,6 +79,10 @@ function isView(value: string | null): value is ConsoleView {
   return value === 'station' || value === 'forecast' || value === 'history';
 }
 
+function isSound(value: string | null): value is 'on' | 'off' {
+  return value === 'on' || value === 'off';
+}
+
 function loadLang(): Lang {
   const stored = localStorage.getItem(LANG_KEY);
   return isLang(stored) ? stored : 'en';
@@ -100,28 +112,28 @@ function bindSeries(
 
   if (!series) {
     for (let index = 0; index < 6; index += 1) {
-      bind(root, `fx${index}t`, dash());
-      bind(root, `fx${index}`, dash());
+      bind(root, `fx${index}t`, '—');
+      bind(root, `fx${index}`, dash(dict));
       bind(root, `fx${index}r`, '');
     }
     for (let index = 0; index < 5; index += 1) {
-      bind(root, `fd${index}h`, dash());
-      bind(root, `fd${index}l`, dash());
-      bind(root, `fd${index}r`, dash());
-      bind(root, `fd${index}k`, dash());
+      bind(root, `fd${index}h`, dash(dict));
+      bind(root, `fd${index}l`, dash(dict));
+      bind(root, `fd${index}r`, dash(dict));
+      bind(root, `fd${index}k`, '—');
     }
-    bind(root, 'hyh', dash());
-    bind(root, 'hyl', dash());
-    bind(root, 'hyr', dash());
-    bind(root, 'hwh', dash());
-    bind(root, 'hwl', dash());
-    bind(root, 'hwr', dash());
-    bind(root, 'hmh', dash());
-    bind(root, 'hml', dash());
-    bind(root, 'hmr', dash());
+    bind(root, 'hyh', dash(dict));
+    bind(root, 'hyl', dash(dict));
+    bind(root, 'hyr', dash(dict));
+    bind(root, 'hwh', dash(dict));
+    bind(root, 'hwl', dash(dict));
+    bind(root, 'hwr', dash(dict));
+    bind(root, 'hmh', dash(dict));
+    bind(root, 'hml', dash(dict));
+    bind(root, 'hmr', dash(dict));
     for (let index = 0; index < 7; index += 1) {
-      bind(root, `hs${index}`, dash());
-      bind(root, `hs${index}k`, dash());
+      bind(root, `hs${index}`, dash(dict));
+      bind(root, `hs${index}k`, '—');
       bind(root, `hs${index}n`, '');
       root.querySelector<HTMLElement>(`[data-bar="${index}"]`)?.style.setProperty('--h', '26%');
     }
@@ -137,18 +149,18 @@ function bindSeries(
   series.daily.forEach((day, index) => {
     bind(root, `fd${index}h`, `${formatTemp(day.high, units)}${unit}`);
     bind(root, `fd${index}l`, `${formatTemp(day.low, units)}${unit}`);
-    bind(root, `fd${index}r`, formatRainPair(day.rain, day.chance, units) || dash());
+    bind(root, `fd${index}r`, formatRainPair(day.rain, day.chance, units) || dash(dict));
     bind(root, `fd${index}k`, forecastDayLabel(day.date, index, dict));
   });
   bind(root, 'hyh', `${formatTemp(series.yesterday.high, units)}${unit}`);
   bind(root, 'hyl', `${formatTemp(series.yesterday.low, units)}${unit}`);
-  bind(root, 'hyr', formatRainAmount(series.yesterday.rain, units));
+  bind(root, 'hyr', formatRainAmount(series.yesterday.rain, units, dict));
   bind(root, 'hwh', `${formatTemp(series.week.high, units)}${unit}`);
   bind(root, 'hwl', `${formatTemp(series.week.low, units)}${unit}`);
-  bind(root, 'hwr', formatRainAmount(series.week.rain, units));
+  bind(root, 'hwr', formatRainAmount(series.week.rain, units, dict));
   bind(root, 'hmh', `${formatTemp(series.month.high, units)}${unit}`);
   bind(root, 'hml', `${formatTemp(series.month.low, units)}${unit}`);
-  bind(root, 'hmr', formatRainAmount(series.month.rain, units));
+  bind(root, 'hmr', formatRainAmount(series.month.rain, units, dict));
   const today = series.lastDays[series.lastDays.length - 1]?.date ?? '';
   const temps = series.lastDays.map((point) => point.temp);
   series.lastDays.forEach((point, index) => {
@@ -169,6 +181,8 @@ function setView(root: HTMLElement, view: ConsoleView) {
     const active = btn.dataset.view === view;
     btn.classList.toggle('is-active', active);
     btn.setAttribute('aria-pressed', String(active));
+    if (active) btn.setAttribute('aria-current', 'page');
+    else btn.removeAttribute('aria-current');
   });
 }
 
@@ -178,8 +192,11 @@ function snapshotUrl(): string {
 }
 
 function bind(root: HTMLElement, name: string, value: string) {
+  const lang = root.dataset.lang;
+  const noData = isLang(lang) ? dictionaries[lang].noData : dictionaries.en.noData;
   root.querySelectorAll(`[data-bind="${name}"]`).forEach((node) => {
     node.textContent = value;
+    node.classList.toggle('is-nodata', value === noData);
   });
 }
 
@@ -188,6 +205,11 @@ function applyI18n(root: HTMLElement, dict: Dictionary) {
     const key = node.dataset.i18n as keyof Dictionary;
     const value = dict[key];
     if (typeof value === 'string') node.textContent = value;
+  });
+  root.querySelectorAll<HTMLElement>('[data-i18n-aria]').forEach((node) => {
+    const key = node.dataset.i18nAria as keyof Dictionary;
+    const value = dict[key];
+    if (typeof value === 'string') node.setAttribute('aria-label', value);
   });
 }
 
@@ -220,20 +242,14 @@ function deriveStatus(data: WeatherSnapshot | null, error: boolean): { ops: OpsS
   return { ops: 'nominal', link: 'online' };
 }
 
-function dash(): string {
-  return '—';
+function dash(dict: Dictionary): string {
+  return dict.noData;
 }
 
 function formatSite(lat: number, lon: number): string {
   const ns = lat >= 0 ? 'N' : 'S';
   const ew = lon >= 0 ? 'E' : 'W';
   return `${Math.abs(lat).toFixed(2)}${ns} ${Math.abs(lon).toFixed(2)}${ew}`;
-}
-
-function moduleTitle(view: ConsoleView, dict: Dictionary): string {
-  if (view === 'forecast') return dict.forecast;
-  if (view === 'history') return dict.history;
-  return dict.meteorology;
 }
 
 function bindStationIdentity(
@@ -252,8 +268,8 @@ function bindStationIdentity(
   bind(root, 'stationId', formatSite(station.lat, station.lon));
 }
 
-function formatRainAmount(mm: number | undefined, units: Units): string {
-  if (typeof mm !== 'number' || !Number.isFinite(mm)) return dash();
+function formatRainAmount(mm: number | undefined, units: Units, dict: Dictionary): string {
+  if (typeof mm !== 'number' || !Number.isFinite(mm)) return dash(dict);
   return `${formatPrecip(mm, units)} ${precipUnit(units)}`;
 }
 
@@ -270,6 +286,7 @@ export function initWeatherConsole(root: HTMLElement) {
   let lang = loadLang();
   let units = loadUnits();
   let view = loadView();
+  let soundOn = initSound();
   const station = DEFAULT_STATION;
   let snapshot: WeatherSnapshot | null = null;
   let series: WeatherSeries | null = null;
@@ -291,6 +308,7 @@ export function initWeatherConsole(root: HTMLElement) {
 
     root.dataset.lang = lang;
     root.dataset.units = units;
+    root.dataset.sound = soundOn ? 'on' : 'off';
     document.documentElement.lang = lang;
     setView(root, view);
     bindSeries(root, series, units, dict, seriesNote(dict));
@@ -301,6 +319,11 @@ export function initWeatherConsole(root: HTMLElement) {
     });
     root.querySelectorAll<HTMLElement>('[data-units]').forEach((btn) => {
       const active = btn.dataset.units === units;
+      btn.classList.toggle('is-active', active);
+      btn.setAttribute('aria-pressed', String(active));
+    });
+    root.querySelectorAll<HTMLElement>('[data-sound]').forEach((btn) => {
+      const active = (btn.dataset.sound === 'on') === soundOn;
       btn.classList.toggle('is-active', active);
       btn.setAttribute('aria-pressed', String(active));
     });
@@ -318,24 +341,23 @@ export function initWeatherConsole(root: HTMLElement) {
 
     bind(root, 'opsStatus', opsLabel(ops, dict));
     bind(root, 'linkStatus', linkLabel(link, dict));
-    bind(root, 'moduleTitle', moduleTitle(view, dict));
-    bind(root, 'sunrise', snapshot?.sun?.rise ?? dash());
-    bind(root, 'sunset', snapshot?.sun?.set ?? dash());
+    bind(root, 'sunrise', snapshot?.sun?.rise ?? dash(dict));
+    bind(root, 'sunset', snapshot?.sun?.set ?? dash(dict));
 
     if (!snapshot) {
-      bind(root, 'temp', dash());
-      bind(root, 'tempUnit', tempUnit(units));
-      bind(root, 'feels', dash());
-      bind(root, 'wind', dash());
-      bind(root, 'windUnit', windUnit(units));
-      bind(root, 'humidity', dash());
-      bind(root, 'gust', dash());
-      bind(root, 'direction', dash());
-      bind(root, 'cardinal', dash());
-      bind(root, 'pressure', dash());
-      bind(root, 'precipRate', dash());
-      bind(root, 'precipToday', dash());
-      bind(root, 'observed', dash());
+      bind(root, 'temp', dash(dict));
+      bind(root, 'tempUnit', '');
+      bind(root, 'feels', dash(dict));
+      bind(root, 'wind', dash(dict));
+      bind(root, 'windUnit', '');
+      bind(root, 'humidity', dash(dict));
+      bind(root, 'gust', dash(dict));
+      bind(root, 'direction', dash(dict));
+      bind(root, 'cardinal', '');
+      bind(root, 'pressure', dash(dict));
+      bind(root, 'precipRate', dash(dict));
+      bind(root, 'precipToday', dash(dict));
+      bind(root, 'observed', dash(dict));
       bind(root, 'source', dict.noData);
       bindStationIdentity(root, dict, null, station);
       bind(root, 'location', station.name);
@@ -354,20 +376,20 @@ export function initWeatherConsole(root: HTMLElement) {
     bind(
       root,
       'pressure',
-      typeof metric.pressure === 'number' ? `${formatPressure(metric.pressure, units)} ${pressureUnit(units)}` : dash(),
+      typeof metric.pressure === 'number' ? `${formatPressure(metric.pressure, units)} ${pressureUnit(units)}` : dash(dict),
     );
     bind(root, 'precipRate', `${formatPrecip(snapshot.precipRate, units)} ${precipRateUnit(units)}`);
     bind(
       root,
       'precipToday',
-      typeof metric.precipTotal === 'number' ? `${formatPrecip(metric.precipTotal, units)} ${precipUnit(units)}` : dash(),
+      typeof metric.precipTotal === 'number' ? `${formatPrecip(metric.precipTotal, units)} ${precipUnit(units)}` : dash(dict),
     );
     if (isCalm(metric.windSpeed)) {
       bind(root, 'direction', dict.calm);
       bind(root, 'cardinal', '');
     } else {
       bind(root, 'direction', formatDegrees(metric.windDir));
-      bind(root, 'cardinal', dict.cardinals[cardinalIndex(metric.windDir)] ?? dash());
+      bind(root, 'cardinal', dict.cardinals[cardinalIndex(metric.windDir)] ?? dash(dict));
     }
     bind(root, 'observed', formatAge(snapshot.observedAt, dict));
     bind(root, 'source', sourceLabel(snapshot.source));
@@ -377,11 +399,20 @@ export function initWeatherConsole(root: HTMLElement) {
     applyDocumentTitle(snapshot.location.name);
   };
 
+  root.addEventListener('pointerdown', () => unlockSound(), { capture: true });
+
+  if (window.matchMedia('(hover: hover)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    root.querySelectorAll<HTMLButtonElement>('button.pill').forEach((btn) => {
+      btn.addEventListener('pointerenter', () => playHover());
+    });
+  }
+
   root.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach((btn) => {
     btn.addEventListener('click', () => {
       if (!isLang(btn.dataset.lang ?? '')) return;
       lang = btn.dataset.lang as Lang;
       localStorage.setItem(LANG_KEY, lang);
+      playKey();
       render();
     });
   });
@@ -391,6 +422,20 @@ export function initWeatherConsole(root: HTMLElement) {
       if (!isUnits(btn.dataset.units ?? '')) return;
       units = btn.dataset.units as Units;
       localStorage.setItem(UNITS_KEY, units);
+      playKey();
+      render();
+    });
+  });
+
+  root.querySelectorAll<HTMLButtonElement>('[data-sound]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!isSound(btn.dataset.sound ?? '')) return;
+      soundOn = btn.dataset.sound === 'on';
+      setSoundEnabled(soundOn);
+      if (soundOn) {
+        unlockSound();
+        playKey();
+      }
       render();
     });
   });
@@ -400,13 +445,16 @@ export function initWeatherConsole(root: HTMLElement) {
       if (!isView(btn.dataset.view ?? '')) return;
       view = btn.dataset.view as ConsoleView;
       localStorage.setItem(VIEW_KEY, view);
+      playView();
       render();
+      root.querySelector<HTMLElement>(`[data-panel="${view}"]`)?.focus();
     });
   });
 
   const prefs = root.querySelector<HTMLDialogElement>('[data-prefs]');
   const prefsOpen = root.querySelector<HTMLButtonElement>('[data-prefs-open]');
   prefsOpen?.addEventListener('click', () => {
+    playKey();
     prefs?.showModal();
     prefsOpen.setAttribute('aria-expanded', 'true');
   });
@@ -419,6 +467,7 @@ export function initWeatherConsole(root: HTMLElement) {
   });
 
   window.setInterval(() => {
+    if (document.hidden) return;
     bind(root, 'clock', formatClock(new Date()));
     if (snapshot) bind(root, 'observed', formatAge(snapshot.observedAt, dictionaries[lang]));
   }, 1000);

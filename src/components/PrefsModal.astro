@@ -1,9 +1,10 @@
 ---
 import LangToggle from './LangToggle.astro';
+import SoundToggle from './SoundToggle.astro';
 import UnitsToggle from './UnitsToggle.astro';
 ---
 
-<dialog class="prefs-dialog" data-prefs aria-labelledby="prefs-title">
+<dialog class="prefs-dialog" id="prefs-dialog" data-prefs aria-labelledby="prefs-title">
   <form class="prefs-panel" method="dialog">
     <header class="prefs-head">
       <h2 id="prefs-title" class="prefs-title" data-i18n="preferences">Preferences</h2>
@@ -17,6 +18,10 @@ import UnitsToggle from './UnitsToggle.astro';
       <section class="prefs-group">
         <h3 class="prefs-label" data-i18n="units">Units</h3>
         <UnitsToggle />
+      </section>
+      <section class="prefs-group">
+        <h3 class="prefs-label" data-i18n="sound">Sound</h3>
+        <SoundToggle />
       </section>
     </div>
   </form>

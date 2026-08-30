@@ -67,6 +67,26 @@ button:disabled {
   cursor: default;
 }
 
+.skip-link {
+  position: absolute;
+  left: 0.75rem;
+  top: 0.75rem;
+  z-index: 30;
+  padding: 0.45rem 1.05rem 0.3rem;
+  border-radius: var(--radius-pill);
+  background: var(--pale-canary);
+  color: #1a0f00;
+  font-size: 1.05rem;
+  font-weight: 700;
+  transform: translateY(-160%);
+}
+
+.skip-link:focus {
+  transform: none;
+  outline: 0.16rem solid var(--pale-canary);
+  outline-offset: 0.18rem;
+}
+
 .console {
   display: grid;
   grid-template-columns:
@@ -80,6 +100,7 @@ button:disabled {
   row-gap: var(--gap);
   min-height: 100dvh;
   padding: 0.55rem 0.5rem 0.55rem 0.5rem;
+  position: relative;
 }
 
 /* Composite LCARS L: spine + arm, square inner corner, curve on the outside only. */
@@ -223,7 +244,7 @@ button:disabled {
 
 .pill-station:not(.is-active) {
   background: var(--inactive-station);
-  color: #2a1408;
+  color: #f3d2b0;
 }
 
 .pill-forecast:not(.is-active) {
@@ -452,98 +473,14 @@ button:disabled {
   position: relative;
 }
 
-.module-bar {
-  display: flex;
-  align-items: stretch;
-  gap: var(--gap);
-  min-height: 2.05rem;
-  flex: 0 0 auto;
-}
-
-.module-arm {
-  display: flex;
-  flex: 1 1 auto;
-  align-items: flex-end;
-  justify-content: flex-end;
-  min-width: 0;
-  padding: 0.22rem 1.35rem 0.18rem;
-  background: var(--golden-tanoi);
-  color: #1a0f00;
-  font-size: 1.02rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-}
-
-.console[data-view='station'] .module-bar {
-  display: none;
-}
-
-.console[data-view='station'] .stage-body {
-  padding-top: 1.05rem;
-}
-
-.console[data-view='forecast'] .module-arm {
-  background: var(--periwinkle);
-  color: #0b0618;
-}
-
-.console[data-view='history'] .module-arm {
-  background: var(--african-violet);
-  color: #1a0814;
-}
-
-.module-finger {
-  display: none;
-  align-items: flex-end;
-  justify-content: flex-end;
-  flex: 0 0 auto;
-  padding: 0.22rem 1.45rem 0.18rem 1.15rem;
-  background: var(--blue-bell);
-  color: #0b0618;
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-}
-
-.console[data-view='forecast'] [data-module-finger='hourly'] {
-  min-width: 5.6rem;
-  flex-basis: 6.2rem;
-}
-
-.console[data-view='forecast'] [data-module-finger='daily'] {
-  min-width: 9.2rem;
-  flex-basis: 11.5rem;
-}
-
-.console[data-view='history'] [data-module-finger='series'] {
-  min-width: 10.5rem;
-  flex-basis: 13rem;
-}
-
-.console[data-view='forecast'] [data-module-finger='hourly'],
-.console[data-view='forecast'] [data-module-finger='daily'],
-.console[data-view='history'] [data-module-finger='series'] {
-  display: flex;
-}
-
-.console[data-view='forecast'] [data-module-finger='hourly'] {
-  background: var(--anakiwa);
-  color: #041018;
-}
-
-.console[data-view='forecast'] [data-module-finger='daily'] {
-  background: var(--african-violet);
-  color: #1a0814;
-}
-
-.console[data-view='history'] [data-module-finger='series'] {
-  background: var(--lilac);
+.stage:focus {
+  outline: none;
 }
 
 .stage-body {
   flex: 1 1 auto;
   min-height: 0;
-  padding: 0.85rem 1.15rem 0.55rem 1.35rem;
+  padding: 1.05rem 1.15rem 0.55rem 1.35rem;
 }
 
 .panel-station {
@@ -560,6 +497,15 @@ button:disabled {
   display: none;
 }
 
+.panel:focus {
+  outline: none;
+}
+
+.panel:focus-visible {
+  outline: 0.16rem solid var(--pale-canary);
+  outline-offset: 0.2rem;
+}
+
 .console.is-booting [data-panel]:not([hidden]) {
   animation: fade-in var(--boot-fade) ease-out both;
   animation-delay: var(--boot-delay);
@@ -570,7 +516,7 @@ button:disabled {
   flex-direction: column;
   justify-content: center;
   min-width: 0;
-  gap: 1.7rem;
+  gap: 2.65rem;
 }
 
 .status-pill {
@@ -605,6 +551,13 @@ button:disabled {
   font-size: clamp(5.4rem, 16vw, 13.5rem);
   font-weight: 700;
   letter-spacing: 0.02em;
+}
+
+.temp.is-nodata {
+  align-self: center;
+  font-size: clamp(2.1rem, 5vw, 3.6rem);
+  letter-spacing: 0.14em;
+  line-height: 1;
 }
 
 .temp-unit {
@@ -652,6 +605,18 @@ button:disabled {
   min-height: 2.85rem;
 }
 
+.metric-tile:nth-child(3) {
+  background: var(--blue-bell);
+  color: #0b0618;
+  min-height: 2.55rem;
+}
+
+.metric-tile:nth-child(4) {
+  background: var(--lilac);
+  color: #1a0810;
+  min-height: 3.05rem;
+}
+
 .metric-label {
   display: flex;
   align-items: flex-end;
@@ -682,6 +647,15 @@ button:disabled {
   color: inherit;
   font-size: clamp(1.55rem, 2.4vw, 2.05rem);
   font-weight: 700;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+
+[data-bind].is-nodata:not(.temp) {
+  font-size: clamp(1.05rem, 1.6vw, 1.35rem);
+  letter-spacing: 0.1em;
+  font-variant-numeric: normal;
+  font-feature-settings: normal;
 }
 
 .metric-unit {
@@ -689,49 +663,6 @@ button:disabled {
   color: inherit;
   opacity: 0.78;
   font-size: 0.72em;
-}
-
-.sun-row {
-  display: flex;
-  gap: var(--gap);
-  max-width: 38rem;
-}
-
-.sun-cell {
-  display: flex;
-  flex: 1 1 0;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 0.75rem;
-  min-width: 0;
-  min-height: 2.55rem;
-  padding: 0.22rem 1.25rem 0.18rem 0.85rem;
-  border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
-  background: var(--blue-bell);
-  color: #0b0618;
-}
-
-.sun-cell:last-child {
-  flex: 1.35 1 0;
-  min-height: 2.9rem;
-  background: var(--lilac);
-  color: #1a0810;
-}
-
-.sun-k {
-  color: inherit;
-  font-size: 0.78rem;
-  letter-spacing: 0.16em;
-  font-weight: 700;
-}
-
-.sun-v {
-  color: inherit;
-  font-size: 1.2rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  font-variant-numeric: tabular-nums lining-nums;
-  font-feature-settings: 'tnum' 1, 'lnum' 1;
 }
 
 .datagrid {
@@ -1236,6 +1167,7 @@ button:disabled {
 }
 
 .prefs-close {
+  min-height: 2.6rem;
   padding: 0.35rem 1rem 0.2rem;
   border-radius: var(--radius-pill);
   background: var(--atomic-tangerine);
@@ -1278,7 +1210,6 @@ button:disabled {
 .console[data-ops='expired'] .elbow-nw .elbow-spine,
 .console[data-ops='expired'] .seg-location,
 .console[data-ops='expired'] .seg-observed,
-.console[data-link='stale'] .seg-source,
 .console[data-link='stale'] .seg-link {
   background: var(--atomic-tangerine);
   color: #1a0a00;
@@ -1382,10 +1313,6 @@ button:disabled {
 
   .chrono {
     display: none;
-  }
-
-  .module-bar {
-    flex-wrap: wrap;
   }
 
   .panel-station,

@@ -1,7 +1,7 @@
-<section class="panel panel-history" data-panel="history" hidden>
+<section class="panel panel-history" id="panel-history" data-panel="history" hidden tabindex="-1">
   <header class="panel-head">
     <h2 class="visually-hidden" data-i18n="history">History</h2>
-    <p class="panel-note" data-bind="seriesNote" hidden></p>
+    <p class="panel-note" data-bind="seriesNote" hidden aria-live="polite"></p>
   </header>
 
   <div class="history-board">
@@ -73,31 +73,31 @@
         <div class="bar-strip">
           <div class="hist-col">
             <span class="hist-val" data-bind="hs0">—</span>
-            <span class="hist-bar" data-bar="0"></span>
+            <span class="hist-bar" data-bar="0" aria-hidden="true"></span>
           </div>
           <div class="hist-col">
             <span class="hist-val" data-bind="hs1">—</span>
-            <span class="hist-bar" data-bar="1"></span>
+            <span class="hist-bar" data-bar="1" aria-hidden="true"></span>
           </div>
           <div class="hist-col">
             <span class="hist-val" data-bind="hs2">—</span>
-            <span class="hist-bar" data-bar="2"></span>
+            <span class="hist-bar" data-bar="2" aria-hidden="true"></span>
           </div>
           <div class="hist-col">
             <span class="hist-val" data-bind="hs3">—</span>
-            <span class="hist-bar" data-bar="3"></span>
+            <span class="hist-bar" data-bar="3" aria-hidden="true"></span>
           </div>
           <div class="hist-col">
             <span class="hist-val" data-bind="hs4">—</span>
-            <span class="hist-bar" data-bar="4"></span>
+            <span class="hist-bar" data-bar="4" aria-hidden="true"></span>
           </div>
           <div class="hist-col">
             <span class="hist-val" data-bind="hs5">—</span>
-            <span class="hist-bar" data-bar="5"></span>
+            <span class="hist-bar" data-bar="5" aria-hidden="true"></span>
           </div>
           <div class="hist-col">
             <span class="hist-val" data-bind="hs6">—</span>
-            <span class="hist-bar" data-bar="6"></span>
+            <span class="hist-bar" data-bar="6" aria-hidden="true"></span>
           </div>
         </div>
         <div class="series-rail" aria-hidden="true"></div>

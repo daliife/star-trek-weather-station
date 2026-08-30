@@ -1,50 +1,50 @@
-<section class="panel panel-forecast" data-panel="forecast" hidden>
+<section class="panel panel-forecast" id="panel-forecast" data-panel="forecast" hidden tabindex="-1">
   <header class="panel-head">
     <h2 class="visually-hidden" data-i18n="forecast">Forecast</h2>
-    <p class="panel-note" data-bind="seriesNote" hidden></p>
+    <p class="panel-note" data-bind="seriesNote" hidden aria-live="polite"></p>
   </header>
 
   <div class="forecast-board">
     <div class="panel-block">
       <div class="data-cluster cluster-hourly">
         <div class="data-spine" aria-hidden="true"></div>
-        <div class="data-body">
-          <div class="row">
+        <div class="data-body" role="list">
+          <div class="row" role="listitem">
             <span class="row-label" data-bind="fx0t">—</span>
             <span class="row-value row-forecast">
               <span data-bind="fx0">—</span>
               <span class="row-rain" data-bind="fx0r"></span>
             </span>
           </div>
-          <div class="row">
+          <div class="row" role="listitem">
             <span class="row-label" data-bind="fx1t">—</span>
             <span class="row-value row-forecast">
               <span data-bind="fx1">—</span>
               <span class="row-rain" data-bind="fx1r"></span>
             </span>
           </div>
-          <div class="row">
+          <div class="row" role="listitem">
             <span class="row-label" data-bind="fx2t">—</span>
             <span class="row-value row-forecast">
               <span data-bind="fx2">—</span>
               <span class="row-rain" data-bind="fx2r"></span>
             </span>
           </div>
-          <div class="row">
+          <div class="row" role="listitem">
             <span class="row-label" data-bind="fx3t">—</span>
             <span class="row-value row-forecast">
               <span data-bind="fx3">—</span>
               <span class="row-rain" data-bind="fx3r"></span>
             </span>
           </div>
-          <div class="row">
+          <div class="row" role="listitem">
             <span class="row-label" data-bind="fx4t">—</span>
             <span class="row-value row-forecast">
               <span data-bind="fx4">—</span>
               <span class="row-rain" data-bind="fx4r"></span>
             </span>
           </div>
-          <div class="row">
+          <div class="row" role="listitem">
             <span class="row-label" data-bind="fx5t">—</span>
             <span class="row-value row-forecast">
               <span data-bind="fx5">—</span>
@@ -58,8 +58,8 @@
     <div class="panel-block">
       <div class="data-cluster cluster-daily">
         <div class="data-spine" aria-hidden="true"></div>
-        <div class="data-body">
-          <div class="row">
+        <div class="data-body" role="list">
+          <div class="row" role="listitem">
             <span class="row-label" data-bind="fd0k">Today</span>
             <span class="row-value row-range">
               <span class="range">
@@ -76,7 +76,7 @@
               </span>
             </span>
           </div>
-          <div class="row">
+          <div class="row" role="listitem">
             <span class="row-label" data-bind="fd1k">Tomorrow</span>
             <span class="row-value row-range">
               <span class="range">
@@ -93,7 +93,7 @@
               </span>
             </span>
           </div>
-          <div class="row">
+          <div class="row" role="listitem">
             <span class="row-label" data-bind="fd2k">+2</span>
             <span class="row-value row-range">
               <span class="range">
@@ -110,7 +110,7 @@
               </span>
             </span>
           </div>
-          <div class="row">
+          <div class="row" role="listitem">
             <span class="row-label" data-bind="fd3k">+3</span>
             <span class="row-value row-range">
               <span class="range">
@@ -127,7 +127,7 @@
               </span>
             </span>
           </div>
-          <div class="row">
+          <div class="row" role="listitem">
             <span class="row-label" data-bind="fd4k">+4</span>
             <span class="row-value row-range">
               <span class="range">
