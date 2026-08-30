@@ -1,0 +1,12 @@
+---
+import LcarsFrame from './LcarsFrame.astro';
+---
+
+<LcarsFrame />
+
+<script>
+  import { initWeatherConsole } from '../lib/console';
+
+  const root = document.querySelector<HTMLElement>('.console');
+  if (root) initWeatherConsole(root);
+</script>

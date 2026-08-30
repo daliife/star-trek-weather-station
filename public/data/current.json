@@ -1,0 +1,21 @@
+{
+  "source": "wunderground-pws",
+  "stationId": "ICABAC4",
+  "location": {
+    "name": "Cabacés",
+    "region": "Tarragona",
+    "country": "ES"
+  },
+  "fetchedAt": "2026-08-30T15:16:00Z",
+  "observedAt": "2026-08-30T15:16:00Z",
+  "status": "ok",
+  "precipRate": 0,
+  "metric": {
+    "temp": 30.6,
+    "feelsLike": 30.0,
+    "humidity": 41,
+    "windSpeed": 4.8,
+    "windGust": 6.4,
+    "windDir": 0
+  }
+}
