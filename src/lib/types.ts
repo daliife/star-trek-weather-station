@@ -26,3 +26,4 @@ export interface WeatherSnapshot {
 
 export type OpsStatus = 'nominal' | 'precip' | 'expired' | 'offline' | 'loading' | 'error';
 export type LinkStatus = 'online' | 'stale' | 'nodata' | 'loading' | 'error';
+export type ConsoleView = 'station' | 'forecast' | 'history';

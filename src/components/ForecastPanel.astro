@@ -1,0 +1,115 @@
+<section class="panel panel-forecast" data-panel="forecast" hidden>
+  <header class="panel-head">
+    <h2 class="visually-hidden" data-i18n="forecast">Previsió</h2>
+    <p class="panel-note" data-i18n="sampleNote">Dades simulades. Encara no hi ha sèrie real.</p>
+  </header>
+
+  <div class="forecast-board">
+    <div class="panel-block">
+      <h3 class="block-label" data-i18n="hourly">Horària</h3>
+      <div class="data-cluster cluster-hourly">
+        <div class="data-spine" aria-hidden="true"></div>
+        <div class="data-body">
+          <div class="row">
+            <span class="row-label" data-bind="fx0t">—</span>
+            <span class="row-value" data-bind="fx0">—</span>
+          </div>
+          <div class="row">
+            <span class="row-label" data-bind="fx1t">—</span>
+            <span class="row-value" data-bind="fx1">—</span>
+          </div>
+          <div class="row">
+            <span class="row-label" data-bind="fx2t">—</span>
+            <span class="row-value" data-bind="fx2">—</span>
+          </div>
+          <div class="row">
+            <span class="row-label" data-bind="fx3t">—</span>
+            <span class="row-value" data-bind="fx3">—</span>
+          </div>
+          <div class="row">
+            <span class="row-label" data-bind="fx4t">—</span>
+            <span class="row-value" data-bind="fx4">—</span>
+          </div>
+          <div class="row">
+            <span class="row-label" data-bind="fx5t">—</span>
+            <span class="row-value" data-bind="fx5">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-block">
+      <h3 class="block-label" data-i18n="daily">Diària</h3>
+      <div class="data-cluster cluster-daily">
+        <div class="data-spine" aria-hidden="true"></div>
+        <div class="data-body">
+          <div class="row">
+            <span class="row-label" data-i18n="today">Avui</span>
+            <span class="row-value row-range">
+              <span class="range">
+                <span class="range-k" data-i18n="high">Màx</span>
+                <span data-bind="fd0h">—</span>
+              </span>
+              <span class="range">
+                <span class="range-k" data-i18n="low">Mín</span>
+                <span data-bind="fd0l">—</span>
+              </span>
+            </span>
+          </div>
+          <div class="row">
+            <span class="row-label" data-i18n="tomorrow">Demà</span>
+            <span class="row-value row-range">
+              <span class="range">
+                <span class="range-k" data-i18n="high">Màx</span>
+                <span data-bind="fd1h">—</span>
+              </span>
+              <span class="range">
+                <span class="range-k" data-i18n="low">Mín</span>
+                <span data-bind="fd1l">—</span>
+              </span>
+            </span>
+          </div>
+          <div class="row">
+            <span class="row-label" data-bind="fd2k">+2</span>
+            <span class="row-value row-range">
+              <span class="range">
+                <span class="range-k" data-i18n="high">Màx</span>
+                <span data-bind="fd2h">—</span>
+              </span>
+              <span class="range">
+                <span class="range-k" data-i18n="low">Mín</span>
+                <span data-bind="fd2l">—</span>
+              </span>
+            </span>
+          </div>
+          <div class="row">
+            <span class="row-label" data-bind="fd3k">+3</span>
+            <span class="row-value row-range">
+              <span class="range">
+                <span class="range-k" data-i18n="high">Màx</span>
+                <span data-bind="fd3h">—</span>
+              </span>
+              <span class="range">
+                <span class="range-k" data-i18n="low">Mín</span>
+                <span data-bind="fd3l">—</span>
+              </span>
+            </span>
+          </div>
+          <div class="row">
+            <span class="row-label" data-bind="fd4k">+4</span>
+            <span class="row-value row-range">
+              <span class="range">
+                <span class="range-k" data-i18n="high">Màx</span>
+                <span data-bind="fd4h">—</span>
+              </span>
+              <span class="range">
+                <span class="range-k" data-i18n="low">Mín</span>
+                <span data-bind="fd4l">—</span>
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

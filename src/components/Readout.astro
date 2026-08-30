@@ -1,16 +1,26 @@
 <section class="readout" aria-live="polite">
-  <div class="status-pill" data-bind="opsStatus">Nominal</div>
-  <div class="temp-line">
-    <span class="temp" data-bind="temp">—</span>
-    <span class="temp-unit" data-bind="tempUnit">°C</span>
+  <div class="status-pill" data-bind="opsStatus">Normal</div>
+  <div class="temp-block">
+    <span class="metric-label" data-i18n="airTemp">Temperatura</span>
+    <div class="temp-line">
+      <span class="temp" data-bind="temp">—</span>
+      <span class="temp-unit" data-bind="tempUnit">°C</span>
+    </div>
   </div>
-  <div class="feels">
-    <span class="feels-label" data-i18n="feelsLike">Sensació</span>
-    <span data-bind="feels">—</span>
-  </div>
-  <div class="wind-line">
-    <span class="wind-label" data-i18n="wind">Vent</span>
-    <span data-bind="wind">—</span>
-    <span data-bind="windUnit"></span>
+  <div class="metric-pair">
+    <div class="data-spine" aria-hidden="true"></div>
+    <div class="metric-tiles">
+      <div class="metric-tile">
+        <span class="metric-label" data-i18n="feelsLike">Sensació</span>
+        <span class="metric-value" data-bind="feels">—</span>
+      </div>
+      <div class="metric-tile">
+        <span class="metric-label" data-i18n="wind">Vent</span>
+        <span class="metric-value">
+          <span data-bind="wind">—</span>
+          <span class="metric-unit" data-bind="windUnit"></span>
+        </span>
+      </div>
+    </div>
   </div>
 </section>

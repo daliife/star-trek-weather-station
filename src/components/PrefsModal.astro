@@ -1,0 +1,29 @@
+---
+import LangToggle from './LangToggle.astro';
+import UnitsToggle from './UnitsToggle.astro';
+---
+
+<dialog class="prefs-dialog" data-prefs aria-labelledby="prefs-title">
+  <form class="prefs-panel" method="dialog">
+    <header class="prefs-head">
+      <h2 id="prefs-title" class="prefs-title" data-i18n="preferences">Preferències</h2>
+      <button class="prefs-close" type="submit" value="close" data-i18n="close">Tancar</button>
+    </header>
+    <div class="prefs-body">
+      <section class="prefs-group">
+        <h3 class="prefs-label" data-i18n="lang">Idioma</h3>
+        <LangToggle />
+      </section>
+      <section class="prefs-group">
+        <h3 class="prefs-label" data-i18n="units">Unitats</h3>
+        <UnitsToggle />
+      </section>
+      <section class="prefs-group">
+        <h3 class="prefs-label" data-i18n="info">Informació</h3>
+        <p class="prefs-note" data-i18n="disclaimer">
+          Projecte de fans. No afiliat a Paramount, Star Trek ni Weather Underground.
+        </p>
+      </section>
+    </div>
+  </form>
+</dialog>

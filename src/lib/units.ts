@@ -1,4 +1,4 @@
-import type { Lang, Units } from './types';
+import type { Units } from './types';
 
 const STALE_MS = 30 * 60 * 1000;
 const CALM_KMH = 0.5;
@@ -50,26 +50,28 @@ export function isStale(observedAt: string, now = Date.now()): boolean {
   return observationAge(observedAt, now) > STALE_MS;
 }
 
-export function formatAge(observedAt: string, labels: { now: string; min: string; hour: string; day: string }, now = Date.now()): string {
+export function formatAge(
+  observedAt: string,
+  labels: { now: string; min: string; hour: string; day: string; agoPrefix?: string; agoSuffix?: string },
+  now = Date.now(),
+): string {
   const age = observationAge(observedAt, now);
   if (!Number.isFinite(age) || age < 0) return '—';
   if (age < 60_000) return labels.now;
-  if (age < 3_600_000) return `${Math.floor(age / 60_000)} ${labels.min}`;
-  if (age < 86_400_000) return `${Math.floor(age / 3_600_000)} ${labels.hour}`;
-  return `${Math.floor(age / 86_400_000)} ${labels.day}`;
+  let core: string;
+  if (age < 3_600_000) core = `${Math.floor(age / 60_000)} ${labels.min}`;
+  else if (age < 86_400_000) core = `${Math.floor(age / 3_600_000)} ${labels.hour}`;
+  else core = `${Math.floor(age / 86_400_000)} ${labels.day}`;
+  const prefix = labels.agoPrefix?.trim();
+  const suffix = labels.agoSuffix?.trim();
+  if (prefix) return `${prefix} ${core}`;
+  if (suffix) return `${core} ${suffix}`;
+  return core;
 }
 
-export function formatClock(date: Date, lang: Lang): string {
-  return new Intl.DateTimeFormat(clockLocale(lang), {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).format(date);
-}
-
-function clockLocale(lang: Lang): string {
-  if (lang === 'ca') return 'ca-ES';
-  if (lang === 'es') return 'es-ES';
-  return 'en-GB';
+export function formatClock(date: Date): string {
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${hours}:${minutes}:${seconds}`;
 }

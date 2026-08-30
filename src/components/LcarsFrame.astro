@@ -1,60 +1,75 @@
 ---
 import DataGrid from './DataGrid.astro';
-import LangToggle from './LangToggle.astro';
+import ForecastPanel from './ForecastPanel.astro';
+import HistoryPanel from './HistoryPanel.astro';
+import PrefsModal from './PrefsModal.astro';
 import Readout from './Readout.astro';
-import UnitsToggle from './UnitsToggle.astro';
 ---
 
-<div class="console" data-state="loading" data-lang="ca" data-units="metric">
-  <aside class="rail">
-    <div class="elbow elbow-top">
-      <div class="elbow-block"></div>
+<div class="console is-booting" data-state="ready" data-view="station" data-lang="ca" data-units="metric">
+  <div class="elbow elbow-nw">
+    <div class="elbow-spine" aria-hidden="true"></div>
+    <div class="seg seg-location">
+      <span class="seg-k" data-bind="region">Tarragona</span>
+      <span data-bind="location">Cabacés</span>
     </div>
+  </div>
+
+  <aside class="rail">
     <nav class="pills">
-      <button class="pill pill-station is-active" type="button" disabled>
-        <span data-i18n="station">Estació</span>
+      <button class="pill pill-nav pill-station is-active" type="button" data-view="station" aria-pressed="true">
+        <span data-i18n="current">Ara</span>
       </button>
-      <LangToggle />
-      <UnitsToggle />
-      <button class="pill pill-offline" type="button" disabled>
+      <button class="pill pill-nav pill-forecast" type="button" data-view="forecast" aria-pressed="false">
         <span data-i18n="forecast">Previsió</span>
-        <span class="pill-slot" data-i18n="offline">Fora de línia</span>
       </button>
-      <button class="pill pill-offline" type="button" disabled>
+      <button class="pill pill-nav pill-history" type="button" data-view="history" aria-pressed="false">
         <span data-i18n="history">Històric</span>
-        <span class="pill-slot" data-i18n="offline">Fora de línia</span>
+      </button>
+      <button class="pill pill-prefs" type="button" data-prefs-open aria-haspopup="dialog" aria-expanded="false">
+        <span data-i18n="preferences">Preferències</span>
       </button>
     </nav>
-    <div class="elbow elbow-bot">
-      <div class="elbow-block"></div>
-    </div>
   </aside>
 
   <header class="header">
-    <div class="seg seg-location" data-bind="location">Cabacés</div>
-    <div class="seg seg-id" data-bind="stationId">ICABAC4</div>
-    <div class="seg seg-meta" data-i18n="meteorology">Meteorologia</div>
-    <div class="chrono" data-bind="clock">00:00:00</div>
+    <div class="seg seg-id">
+      <span class="seg-k" data-i18n="station">Estació</span>
+      <span data-bind="stationId">ICABAC4</span>
+    </div>
+    <div class="seg seg-observed">
+      <span class="seg-k" data-i18n="observed">Lectura</span>
+      <span data-bind="observed">—</span>
+    </div>
+    <div class="chrono">
+      <span class="chrono-k" data-i18n="localTime">Hora local</span>
+      <span data-bind="clock">00:00:00</span>
+    </div>
   </header>
 
   <main class="stage">
-    <div class="cascade" aria-hidden="true">
-      <div class="cascade-bar"></div>
-      <div class="cascade-bar"></div>
-      <div class="cascade-bar"></div>
-      <div class="cascade-bar"></div>
+    <div class="panel panel-station" data-panel="station">
+      <Readout />
+      <DataGrid />
     </div>
-    <Readout />
-    <DataGrid />
+    <ForecastPanel />
+    <HistoryPanel />
   </main>
 
+  <div class="elbow elbow-sw">
+    <div class="elbow-spine" aria-hidden="true"></div>
+  </div>
+
   <footer class="footer">
-    <div class="seg seg-source" data-bind="source">WunderGround PWS</div>
-    <div class="seg seg-station" data-bind="stationId">ICABAC4</div>
-    <div class="seg seg-link" data-bind="linkStatus">En línia</div>
-    <div class="seg seg-fetched" data-bind="fetchedAt">—</div>
-    <p class="disclaimer" data-i18n="disclaimer">
-      Treball de fans. No afiliat a Paramount, Star Trek ni Weather Underground.
-    </p>
+    <div class="seg seg-source">
+      <span class="seg-k" data-i18n="source">Font</span>
+      <span data-bind="source">WunderGround</span>
+    </div>
+    <div class="seg seg-link">
+      <span class="seg-k" data-i18n="link">Connexió</span>
+      <span data-bind="linkStatus">En línia</span>
+    </div>
   </footer>
+
+  <PrefsModal />
 </div>

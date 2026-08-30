@@ -58,7 +58,7 @@ The PWS payload has no sky-condition phrase. The center readout is temperature. 
 
 ## Language and units
 
-Labels live in `src/i18n/{ca,es,en}.json` (numbers stay numeric). Default language is Catalan; default units are metric (°C, km/h). The imperial toggle is °F and mph. Language and units persist in `localStorage`.
+Labels live in `src/i18n/{ca,es,en}.json` (numbers stay numeric). Default language is Catalan; default units are metric (°C, km/h). The imperial toggle is °F and mph. Language and units are set in the preferences dialog and persist in `localStorage`.
 
 ## GitHub Pages
 
@@ -70,10 +70,10 @@ Labels live in `src/i18n/{ca,es,en}.json` (numbers stay numeric). Default langua
 
 ## Layout
 
-- Left: `STATION` (active), `CA / ES / EN`, `SI / IMP`, dimmed `FORECAST` / `HISTORY` slots
-- Top: location, station id, meteorology label, local chronometer
-- Center: oversized temperature, feels-like, wind
-- Right: humidity, gust, direction (degrees + cardinal), observation age
+- Left: view pills `STATION` / `FORECAST` / `HISTORY`, plus a preferences control for language and units
+- Top: location, station id, current view, local chronometer
+- Station view: oversized temperature, separate feels-like and wind tiles, humidity/gust/direction/age grid
+- Forecast and History views: labeled mock data until live endpoints are wired
 - Bottom: source, station, link status, fetched-at, fan disclaimer
 
 Tokens and frame live in `src/styles/lcars.css` (Antonio, own elbows/pills — no LCARS CSS kit). The interactive island is `WeatherConsole.astro`.
