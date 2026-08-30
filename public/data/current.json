@@ -6,37 +6,35 @@
     "region": "Tarragona",
     "country": "ES"
   },
-  "fetchedAt": "2026-08-30T17:49:36Z",
-  "observedAt": "2026-08-30T17:49:36Z",
+  "fetchedAt": "2026-08-30T18:22:55Z",
+  "observedAt": "2026-08-30T18:22:55Z",
   "status": "ok",
   "precipRate": 0,
   "metric": {
-    "temp": 26.6,
-    "feelsLike": 26.3,
+    "temp": 26,
+    "feelsLike": 25.8,
     "humidity": 46,
-    "windSpeed": 10.8,
-    "windGust": 35.6,
-    "windDir": 143,
-    "pressure": 968.2,
+    "windSpeed": 8.9,
+    "windGust": 33.1,
+    "windDir": 140,
+    "pressure": 968.3,
     "precipTotal": 0
+  },
+  "sun": {
+    "rise": "07:21",
+    "set": "20:33"
   },
   "series": {
     "hourly": [
       {
-        "hour": "20:00",
-        "temp": 26.2,
-        "rain": 0,
-        "chance": 0
-      },
-      {
         "hour": "21:00",
-        "temp": 24.2,
+        "temp": 24.4,
         "rain": 0,
         "chance": 0
       },
       {
         "hour": "22:00",
-        "temp": 23,
+        "temp": 23.1,
         "rain": 0,
         "chance": 0
       },
@@ -48,13 +46,19 @@
       },
       {
         "hour": "00:00",
-        "temp": 22.1,
+        "temp": 22.2,
         "rain": 0,
         "chance": 0
       },
       {
         "hour": "01:00",
-        "temp": 22.2,
+        "temp": 22.1,
+        "rain": 0,
+        "chance": 0
+      },
+      {
+        "hour": "02:00",
+        "temp": 21.6,
         "rain": 0,
         "chance": 0
       }
@@ -69,8 +73,8 @@
       },
       {
         "date": "2026-08-31",
-        "high": 30.5,
-        "low": 18.6,
+        "high": 30.6,
+        "low": 18.5,
         "rain": 0,
         "chance": 0
       },
@@ -138,7 +142,7 @@
       },
       {
         "date": "2026-08-30",
-        "temp": 23.9
+        "temp": 24
       }
     ]
   }

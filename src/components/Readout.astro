@@ -1,5 +1,5 @@
 <section class="readout" aria-live="polite">
-  <div class="status-pill" data-bind="opsStatus">Normal</div>
+  <div class="status-pill visually-hidden" data-bind="opsStatus">Normal</div>
   <div class="temp-block">
     <span class="metric-label" data-i18n="airTemp">Temperature</span>
     <div class="temp-line">
@@ -21,6 +21,16 @@
           <span class="metric-unit" data-bind="windUnit"></span>
         </span>
       </div>
+    </div>
+  </div>
+  <div class="sun-row">
+    <div class="sun-cell">
+      <span class="sun-k">Sun ↑</span>
+      <span class="sun-v" data-bind="sunrise">—</span>
+    </div>
+    <div class="sun-cell">
+      <span class="sun-k">Sun ↓</span>
+      <span class="sun-v" data-bind="sunset">—</span>
     </div>
   </div>
 </section>

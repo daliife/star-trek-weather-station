@@ -10,6 +10,8 @@
   "offline": "Fora de línia",
   "current": "Ara",
   "meteorology": "Meteorologia",
+  "sunrise": "Alba",
+  "sunset": "Posta",
   "airTemp": "Temperatura",
   "feelsLike": "Sensació",
   "wind": "Vent",

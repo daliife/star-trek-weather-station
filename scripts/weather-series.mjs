@@ -29,6 +29,12 @@ function hourFromLocal(value) {
   return match?.[1] ?? '';
 }
 
+function sunPair(rise, set) {
+  const up = hourFromLocal(rise);
+  const down = hourFromLocal(set);
+  return up && down ? { rise: up, set: down } : undefined;
+}
+
 function finite(value) {
   const num = Number(value);
   return Number.isFinite(num) ? num : null;
@@ -191,6 +197,10 @@ export async function fetchWundergroundSeries(apiKey, station, todayTemp) {
     week,
     month,
     lastDays,
+    sun: sunPair(
+      daily.body?.sunriseTimeLocal?.[0] ?? daily.body?.sunriseTimeUtc?.[0],
+      daily.body?.sunsetTimeLocal?.[0] ?? daily.body?.sunsetTimeUtc?.[0],
+    ),
   };
 }
 
@@ -201,7 +211,7 @@ export async function fetchOpenMeteoSeries(station) {
   url.searchParams.set('hourly', 'temperature_2m,precipitation,precipitation_probability');
   url.searchParams.set(
     'daily',
-    'temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,precipitation_probability_max',
+    'temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,precipitation_probability_max,sunrise,sunset',
   );
   url.searchParams.set('forecast_days', String(SERIES_DAYS));
   url.searchParams.set('past_days', String(SERIES_PAST_DAYS));
@@ -219,6 +229,8 @@ export async function fetchOpenMeteoSeries(station) {
   const means = body?.daily?.temperature_2m_mean ?? [];
   const dailyRain = body?.daily?.precipitation_sum ?? [];
   const dailyChance = body?.daily?.precipitation_probability_max ?? [];
+  const sunrises = body?.daily?.sunrise ?? [];
+  const sunsets = body?.daily?.sunset ?? [];
   const now = Date.now();
   const hourly = [];
   for (let index = 0; index < hours.length && hourly.length < SERIES_HOURS; index += 1) {
@@ -287,5 +299,6 @@ export async function fetchOpenMeteoSeries(station) {
     week,
     month,
     lastDays,
+    sun: sunPair(sunrises[todayIndex], sunsets[todayIndex]),
   };
 }

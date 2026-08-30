@@ -41,6 +41,10 @@ export interface WeatherSeries {
   week: TempRange;
   month: TempRange;
   lastDays: SeriesPoint[];
+  sun?: {
+    rise: string;
+    set: string;
+  };
 }
 
 export interface WeatherSnapshot {
@@ -66,6 +70,10 @@ export interface WeatherSnapshot {
     precipTotal?: number;
   };
   series?: WeatherSeries;
+  sun?: {
+    rise: string;
+    set: string;
+  };
 }
 
 export type OpsStatus = 'nominal' | 'precip' | 'expired' | 'offline' | 'loading' | 'error';

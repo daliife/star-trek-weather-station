@@ -154,7 +154,7 @@ async function fetchOpenMeteo(station) {
     'current',
     'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,precipitation,surface_pressure',
   );
-  url.searchParams.set('daily', 'precipitation_sum');
+  url.searchParams.set('daily', 'precipitation_sum,sunrise,sunset');
   url.searchParams.set('forecast_days', '1');
   url.searchParams.set('timezone', 'auto');
 
@@ -169,14 +169,14 @@ async function fetchOpenMeteo(station) {
   }
 
   const todayRain = body?.daily?.precipitation_sum?.[0];
+  const rise = /T(\d{2}:\d{2})/.exec(String(body?.daily?.sunrise?.[0] ?? ''))?.[1];
+  const set = /T(\d{2}:\d{2})/.exec(String(body?.daily?.sunset?.[0] ?? ''))?.[1];
 
   return {
     source: 'open-meteo',
     stationId: station.stationId,
     location: { name: station.name, region: station.region, country: station.country },
     fetchedAt: isoNow(),
-    // Open-Meteo current.time is a model hour, not a PWS observation.
-    // Use fetch time so the console does not mark a live fallback as stale.
     observedAt: isoNow(),
     status: 'ok',
     precipRate: typeof current.precipitation === 'number' ? current.precipitation : 0,
@@ -190,12 +190,16 @@ async function fetchOpenMeteo(station) {
       ...(typeof current.surface_pressure === 'number' ? { pressure: current.surface_pressure } : {}),
       ...(typeof todayRain === 'number' ? { precipTotal: todayRain } : {}),
     },
+    ...(rise && set ? { sun: { rise, set } } : {}),
   };
 }
 
 async function withWundergroundSeries(snapshot, apiKey, station) {
   try {
-    snapshot.series = await fetchWundergroundSeries(apiKey, station, snapshot.metric.temp);
+    const series = await fetchWundergroundSeries(apiKey, station, snapshot.metric.temp);
+    if (series.sun) snapshot.sun = series.sun;
+    delete series.sun;
+    snapshot.series = series;
   } catch (error) {
     console.warn(`WU series unavailable; leaving Previsió/Històric empty rather than mixing Open-Meteo. ${error.message}`);
   }
@@ -204,7 +208,10 @@ async function withWundergroundSeries(snapshot, apiKey, station) {
 
 async function withOpenMeteoSeries(snapshot, station) {
   try {
-    snapshot.series = await fetchOpenMeteoSeries(station);
+    const series = await fetchOpenMeteoSeries(station);
+    if (!snapshot.sun) snapshot.sun = series.sun;
+    delete series.sun;
+    snapshot.series = series;
   } catch (error) {
     console.warn(`Open-Meteo series unavailable. ${error.message}`);
   }

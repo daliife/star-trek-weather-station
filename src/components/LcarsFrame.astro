@@ -10,8 +10,8 @@ import Readout from './Readout.astro';
 <div class="console is-booting" data-state="ready" data-view="station" data-lang="en" data-units="metric">
   <div class="elbow elbow-nw">
     <div class="elbow-spine" aria-hidden="true"></div>
-    <div class="seg seg-location">
-      <span class="seg-k" data-bind="region">{station.region}</span>
+    <div class="elbow-arm seg seg-location">
+      <span class="seg-k visually-hidden" data-bind="region">{station.region}</span>
       <span data-bind="location">{station.name}</span>
     </div>
   </div>
@@ -34,40 +34,48 @@ import Readout from './Readout.astro';
   </aside>
 
   <header class="header">
-    <div class="seg seg-id">
-      <span class="seg-k" data-bind="stationKey">Station</span>
+    <div class="seg seg-id finger">
+      <span class="seg-k visually-hidden" data-bind="stationKey">Station</span>
       <span data-bind="stationId">{station.stationId}</span>
     </div>
-    <div class="seg seg-observed">
-      <span class="seg-k" data-i18n="observed">Reading</span>
+    <div class="seg seg-observed finger finger-last">
+      <span class="seg-k visually-hidden" data-i18n="observed">Reading</span>
       <span data-bind="observed">—</span>
     </div>
     <div class="chrono">
-      <span class="chrono-k" data-i18n="localTime">Local time</span>
+      <span class="chrono-k visually-hidden" data-i18n="localTime">Local time</span>
       <span data-bind="clock">00:00:00</span>
     </div>
   </header>
 
   <main class="stage">
-    <div class="panel panel-station" data-panel="station">
-      <Readout />
-      <DataGrid />
+    <div class="module-bar">
+      <span class="module-arm" data-bind="moduleTitle">Meteorology</span>
+      <span class="module-finger" data-module-finger="hourly" data-i18n="hourly">Hourly</span>
+      <span class="module-finger finger-last" data-module-finger="daily" data-i18n="daily">Daily</span>
+      <span class="module-finger finger-last" data-module-finger="series" data-i18n="series">Last days</span>
     </div>
-    <ForecastPanel />
-    <HistoryPanel />
+    <div class="stage-body">
+      <div class="panel panel-station" data-panel="station">
+        <Readout />
+        <DataGrid />
+      </div>
+      <ForecastPanel />
+      <HistoryPanel />
+    </div>
   </main>
 
   <div class="elbow elbow-sw">
     <div class="elbow-spine" aria-hidden="true"></div>
+    <div class="elbow-arm seg seg-source">
+      <span class="seg-k visually-hidden" data-i18n="source">Source</span>
+      <span data-bind="source">WunderGround</span>
+    </div>
   </div>
 
   <footer class="footer">
-    <div class="seg seg-source">
-      <span class="seg-k" data-i18n="source">Source</span>
-      <span data-bind="source">WunderGround</span>
-    </div>
-    <div class="seg seg-link">
-      <span class="seg-k" data-i18n="link">Connection</span>
+    <div class="seg seg-link finger finger-last">
+      <span class="seg-k visually-hidden" data-i18n="link">Connection</span>
       <span data-bind="linkStatus">Online</span>
     </div>
   </footer>

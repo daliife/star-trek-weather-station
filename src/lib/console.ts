@@ -230,6 +230,12 @@ function formatSite(lat: number, lon: number): string {
   return `${Math.abs(lat).toFixed(2)}${ns} ${Math.abs(lon).toFixed(2)}${ew}`;
 }
 
+function moduleTitle(view: ConsoleView, dict: Dictionary): string {
+  if (view === 'forecast') return dict.forecast;
+  if (view === 'history') return dict.history;
+  return dict.meteorology;
+}
+
 function bindStationIdentity(
   root: HTMLElement,
   dict: Dictionary,
@@ -312,6 +318,9 @@ export function initWeatherConsole(root: HTMLElement) {
 
     bind(root, 'opsStatus', opsLabel(ops, dict));
     bind(root, 'linkStatus', linkLabel(link, dict));
+    bind(root, 'moduleTitle', moduleTitle(view, dict));
+    bind(root, 'sunrise', snapshot?.sun?.rise ?? dash());
+    bind(root, 'sunset', snapshot?.sun?.set ?? dash());
 
     if (!snapshot) {
       bind(root, 'temp', dash());
@@ -453,6 +462,9 @@ export function initWeatherConsole(root: HTMLElement) {
       } else {
         series = await fetchOpenMeteoSeries(station);
         seriesFailed = false;
+      }
+      if (snapshot && !snapshot.sun && series?.sun && snapshot.source === 'open-meteo') {
+        snapshot = { ...snapshot, sun: series.sun };
       }
     } catch (error) {
       console.error(error);

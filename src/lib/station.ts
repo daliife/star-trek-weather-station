@@ -21,14 +21,14 @@ export async function fetchOpenMeteoSnapshot(station: StationConfig): Promise<We
     'current',
     'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,precipitation,surface_pressure',
   );
-  url.searchParams.set('daily', 'precipitation_sum');
+  url.searchParams.set('daily', 'precipitation_sum,sunrise,sunset');
   url.searchParams.set('forecast_days', '1');
   url.searchParams.set('timezone', 'auto');
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Open-Meteo HTTP ${response.status}`);
   const body = (await response.json()) as {
     current?: Record<string, number | string>;
-    daily?: { precipitation_sum?: Array<number | null> };
+    daily?: { precipitation_sum?: Array<number | null>; sunrise?: string[]; sunset?: string[] };
   };
   const current = body.current;
   if (!current) throw new Error('Open-Meteo response had no current block.');
@@ -40,6 +40,8 @@ export async function fetchOpenMeteoSnapshot(station: StationConfig): Promise<We
   };
   const todayRain = Number(body.daily?.precipitation_sum?.[0]);
   const pressure = Number(current.surface_pressure);
+  const rise = /T(\d{2}:\d{2})/.exec(String(body.daily?.sunrise?.[0] ?? ''))?.[1];
+  const set = /T(\d{2}:\d{2})/.exec(String(body.daily?.sunset?.[0] ?? ''))?.[1];
   return {
     source: 'open-meteo',
     stationId: station.stationId,
@@ -58,6 +60,7 @@ export async function fetchOpenMeteoSnapshot(station: StationConfig): Promise<We
       ...(Number.isFinite(pressure) ? { pressure } : {}),
       ...(Number.isFinite(todayRain) ? { precipTotal: todayRain } : {}),
     },
+    ...(rise && set ? { sun: { rise, set } } : {}),
   };
 }
 
@@ -76,6 +79,8 @@ type OpenMeteoSeriesBody = {
     temperature_2m_mean?: Array<number | null>;
     precipitation_sum?: Array<number | null>;
     precipitation_probability_max?: Array<number | null>;
+    sunrise?: string[];
+    sunset?: string[];
   };
 };
 
@@ -123,7 +128,7 @@ export async function fetchOpenMeteoSeries(station: StationConfig): Promise<Weat
   url.searchParams.set('hourly', 'temperature_2m,precipitation,precipitation_probability');
   url.searchParams.set(
     'daily',
-    'temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,precipitation_probability_max',
+    'temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,precipitation_probability_max,sunrise,sunset',
   );
   url.searchParams.set('forecast_days', String(SERIES_FORECAST_DAYS));
   url.searchParams.set('past_days', String(SERIES_PAST_DAYS));
@@ -190,6 +195,9 @@ export async function fetchOpenMeteoSeries(station: StationConfig): Promise<Weat
     return { date, temp: means[dayIndex] ?? requireFinite(undefined, `series ${date}`) };
   });
 
+  const rise = /T(\d{2}:\d{2})/.exec(String(body.daily?.sunrise?.[todayIndex] ?? ''))?.[1];
+  const set = /T(\d{2}:\d{2})/.exec(String(body.daily?.sunset?.[todayIndex] ?? ''))?.[1];
+
   return {
     hourly,
     daily,
@@ -203,5 +211,6 @@ export async function fetchOpenMeteoSeries(station: StationConfig): Promise<Weat
     week: rangeOf(highs, lows, dailyRain, weekFrom, yesterdayIndex),
     month: rangeOf(highs, lows, dailyRain, monthFrom, yesterdayIndex),
     lastDays,
+    ...(rise && set ? { sun: { rise, set } } : {}),
   };
 }

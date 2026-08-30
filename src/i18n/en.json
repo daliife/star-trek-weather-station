@@ -10,6 +10,8 @@
   "offline": "Offline",
   "current": "Now",
   "meteorology": "Meteorology",
+  "sunrise": "Sunrise",
+  "sunset": "Sunset",
   "airTemp": "Temperature",
   "feelsLike": "Feels like",
   "wind": "Wind",
