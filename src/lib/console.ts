@@ -1,5 +1,5 @@
-import { dictionaries, isLang } from './i18n';
-import type { Dictionary } from './i18n';
+import { dictionaries, isLang, type Dictionary } from './i18n';
+import { forecastHourLabel } from './forecast-label';
 import {
   initSound,
   playHover,
@@ -142,7 +142,7 @@ function bindSeries(
 
   const unit = tempUnit(units);
   series.hourly.forEach((point, index) => {
-    bind(root, `fx${index}t`, point.hour);
+    bind(root, `fx${index}t`, forecastHourLabel(point.hour, dict));
     bind(root, `fx${index}`, `${formatTemp(point.temp, units)}${unit}`);
     bind(root, `fx${index}r`, formatRainPair(point.rain, point.chance, units));
   });

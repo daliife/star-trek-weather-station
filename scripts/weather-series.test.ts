@@ -4,6 +4,7 @@ import {
   finite,
   hourFromLocal,
   hourLabel,
+  hoursFromDaypart,
   rangeOf,
   stampMs,
   sunPair,
@@ -53,5 +54,31 @@ describe('series helpers', () => {
       set: '20:41',
     });
     expect(sunPair('', '2025-08-31T20:41:00+0200')).toBeUndefined();
+  });
+
+  it('fills hourly slots from 5-day day/night parts, skipping elapsed nulls', () => {
+    const dates = [
+      '2026-08-30T07:00:00+0200',
+      '2026-08-31T07:00:00+0200',
+      '2026-09-01T07:00:00+0200',
+      '2026-09-02T07:00:00+0200',
+      '2026-09-03T07:00:00+0200',
+    ];
+    const points = hoursFromDaypart(
+      {
+        temperature: [null, 19, 31, 17, 28, 16],
+        dayOrNight: [null, 'N', 'D', 'N', 'D', 'N'],
+        qpf: [null, 0, 0.2, 0, 0, 1],
+        precipChance: [null, 8, 20, 10, 5, 40],
+      },
+      dates,
+    );
+    expect(points).toEqual([
+      { hour: 'N:2026-08-30', temp: 19, rain: 0, chance: 8 },
+      { hour: 'D:2026-08-31', temp: 31, rain: 0.2, chance: 20 },
+      { hour: 'N:2026-08-31', temp: 17, rain: 0, chance: 10 },
+      { hour: 'D:2026-09-01', temp: 28, rain: 0, chance: 5 },
+      { hour: 'N:2026-09-01', temp: 16, rain: 1, chance: 40 },
+    ]);
   });
 });

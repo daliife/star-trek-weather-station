@@ -82,6 +82,32 @@ function dayChance(chances, dayIndex) {
   return Math.max(day ?? 0, night ?? 0);
 }
 
+function hoursFromDaypart(daypart, dailyDates) {
+  const part = Array.isArray(daypart) ? daypart[0] : daypart;
+  if (!part || typeof part !== 'object') return [];
+  const temps = part.temperature ?? [];
+  const modes = part.dayOrNight ?? [];
+  const rains = part.qpf ?? [];
+  const chances = part.precipChance ?? [];
+  const upcoming = [];
+  for (let index = 0; index < temps.length && upcoming.length < SERIES_HOURS; index += 1) {
+    const temp = finite(temps[index]);
+    const mode = String(modes[index] ?? '').toUpperCase();
+    if (temp === null || (mode !== 'D' && mode !== 'N')) continue;
+    const date = dateFromLocal(dailyDates[Math.floor(index / 2)]);
+    if (!date) continue;
+    const rain = finite(rains[index]);
+    const chance = finite(chances[index]);
+    upcoming.push({
+      hour: `${mode}:${date}`,
+      temp,
+      ...(rain !== null ? { rain } : {}),
+      ...(chance !== null ? { chance } : {}),
+    });
+  }
+  return upcoming;
+}
+
 async function fetchJson(url) {
   const response = await fetch(url);
   const text = await response.text();
@@ -117,21 +143,13 @@ export async function fetchWundergroundSeries(apiKey, station, todayTemp) {
     geocode: `${station.lat},${station.lon}`,
     format: 'json',
     units: 'm',
-    language: 'ca-ES',
-    apiKey,
-  });
-  const hourlyUrl = wuUrl('/v3/wx/forecast/hourly/2day', {
-    geocode: `${station.lat},${station.lon}`,
-    format: 'json',
-    units: 'm',
-    language: 'ca-ES',
+    language: 'en-US',
     apiKey,
   });
 
-  const [history, daily, hourly] = await Promise.all([
+  const [history, daily] = await Promise.all([
     fetchJson(historyUrl),
     fetchJson(dailyUrl),
-    fetchJson(hourlyUrl),
   ]);
 
   if (!history.response.ok) throw new Error(`WU history HTTP ${history.response.status}`);
@@ -193,35 +211,10 @@ export async function fetchWundergroundSeries(apiKey, station, todayTemp) {
   }
   if (forecastDays.length < SERIES_DAYS) throw new Error('WU daily forecast was incomplete.');
 
-  if (!hourly.response.ok) {
-    console.warn(`WU hourly forecast HTTP ${hourly.response.status}; Previsió horària will be empty.`);
-  }
-
-  const hourlyTimes = hourly.response.ok
-    ? (hourly.body?.validTimeLocal?.length ? hourly.body.validTimeLocal : (hourly.body?.validTimeUtc ?? []))
-    : [];
-  const hourlyTemps = hourly.response.ok ? (hourly.body?.temperature ?? []) : [];
-  const hourlyQpf = hourly.response.ok ? (hourly.body?.qpf ?? []) : [];
-  const hourlyChance = hourly.response.ok ? (hourly.body?.precipChance ?? []) : [];
-  const now = Date.now();
-  const upcoming = [];
-  for (let index = 0; index < hourlyTimes.length && upcoming.length < SERIES_HOURS; index += 1) {
-    const stamp = hourlyTimes[index];
-    const temp = finite(hourlyTemps[index]);
-    const ms = stampMs(stamp);
-    if (temp === null) continue;
-    if (Number.isFinite(ms) && ms <= now) continue;
-    const rain = finite(hourlyQpf[index]);
-    const chance = finite(hourlyChance[index]);
-    upcoming.push({
-      hour: hourLabel(stamp) || `${String(index).padStart(2, '0')}:00`,
-      temp,
-      ...(rain !== null ? { rain } : {}),
-      ...(chance !== null ? { chance } : {}),
-    });
-  }
+  // PWS contributor keys can read daily/5day (including day/night parts) but not hourly/2day (HTTP 401).
+  const upcoming = hoursFromDaypart(daily.body?.daypart, dailyDates);
   if (upcoming.length < SERIES_HOURS) {
-    console.warn(`WU hourly forecast incomplete (${upcoming.length}/${SERIES_HOURS}).`);
+    console.warn(`WU daypart forecast incomplete (${upcoming.length}/${SERIES_HOURS}).`);
   }
 
   return {
@@ -337,4 +330,4 @@ export async function fetchOpenMeteoSeries(station) {
   };
 }
 
-export { dateFromLocal, finite, hourFromLocal, hourLabel, rangeOf, stampMs, sunPair };
+export { dateFromLocal, finite, hourFromLocal, hourLabel, hoursFromDaypart, rangeOf, stampMs, sunPair };
