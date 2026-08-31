@@ -8,7 +8,6 @@ import Readout from './Readout.astro';
 ---
 
 <div class="console is-booting" data-state={initial.state} data-view="station" data-lang="en" data-units="metric">
-  <a class="skip-link" href="#stage" data-i18n="skip">Skip to weather</a>
   <h1 class="visually-hidden">Star Trek Weather Station · {initial.location}</h1>
   <div class="elbow elbow-nw">
     <div class="elbow-spine" aria-hidden="true"></div>
@@ -51,7 +50,7 @@ import Readout from './Readout.astro';
     </div>
   </header>
 
-  <main class="stage" id="stage" tabindex="-1">
+  <main class="stage">
     <div class="stage-body">
       <div class="panel panel-station" id="panel-station" data-panel="station" tabindex="-1">
         <h2 class="visually-hidden" data-i18n="current">Now</h2>
