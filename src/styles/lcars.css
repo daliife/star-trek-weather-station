@@ -1260,37 +1260,63 @@ button:disabled {
 
 @media (max-width: 900px) {
   .console {
-    grid-template-columns: 5.6rem 1fr 1fr;
-    grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto auto;
     column-gap: var(--gap);
     row-gap: var(--gap);
     padding: 0.55rem 0.5rem;
   }
 
-  /* The rail spans every row, so let it hug its buttons and follow the scroll
-     instead of stretching the nav to the full height of the panel content. */
+  /* One column: view pills across the top, then location, header, and panel. */
   .rail {
     grid-column: 1;
-    grid-row: 1 / 6;
+    grid-row: 1;
+    flex-direction: row;
+    align-items: stretch;
+    align-self: stretch;
     position: sticky;
-    top: 0.55rem;
-    align-self: start;
-    padding-top: 0;
-    padding-bottom: 0;
+    top: 0;
+    z-index: 4;
+    min-height: 0;
+    padding: 0.2rem 0 0.35rem;
+    background: var(--lcars-bg);
+  }
+
+  .pills {
+    flex-direction: row;
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
   .rail .pill {
-    flex: 0 0 auto;
+    flex-direction: row;
     align-items: center;
     justify-content: center;
-    min-height: 3rem;
-    padding: 0.3rem 0.5rem 0.24rem;
+    min-width: 0;
+    min-height: 2.6rem;
+    padding: 0.32rem 0.5rem 0.26rem;
+    border-radius: var(--radius-pill);
     text-align: center;
+    font-size: 0.78rem;
+    line-height: 1.1;
+    letter-spacing: 0.04em;
+  }
+
+  .pill-nav {
+    min-height: 2.6rem;
+    font-size: 0.82rem;
+  }
+
+  .pill-station,
+  .pill-forecast,
+  .pill-history {
+    flex: 1 1 0;
+    min-height: 2.6rem;
   }
 
   .elbow-nw {
-    grid-column: 2 / 4;
-    grid-row: 1;
+    grid-column: 1;
+    grid-row: 2;
     height: auto;
     display: block;
   }
@@ -1302,8 +1328,8 @@ button:disabled {
 
   .elbow-sw {
     display: grid;
-    grid-column: 2 / 4;
-    grid-row: 4;
+    grid-column: 1;
+    grid-row: 5;
     grid-template-columns: 1fr;
     grid-template-rows: auto;
     height: auto;
@@ -1316,8 +1342,8 @@ button:disabled {
   }
 
   .header {
-    grid-column: 2 / 4;
-    grid-row: 2;
+    grid-column: 1;
+    grid-row: 3;
     grid-template-columns: 1fr 1fr;
     height: auto;
     padding-left: 0;
@@ -1339,8 +1365,8 @@ button:disabled {
   }
 
   .stage {
-    grid-column: 2 / 4;
-    grid-row: 3;
+    grid-column: 1;
+    grid-row: 4;
     margin: 0;
     padding: 0.15rem 0.35rem 0.35rem 0.25rem;
     border-radius: 0;
@@ -1351,8 +1377,8 @@ button:disabled {
   }
 
   .footer {
-    grid-column: 2 / 4;
-    grid-row: 5;
+    grid-column: 1;
+    grid-row: 6;
     grid-template-columns: 1fr;
     height: auto;
     padding-left: 0;
@@ -1374,10 +1400,13 @@ button:disabled {
     display: none;
   }
 
-  .pill-prefs {
+  .rail .pill-prefs {
+    flex: 0 0 auto;
     margin-top: 0;
     min-height: 2.6rem;
-    font-size: 0.78rem;
+    padding-left: 0.7rem;
+    padding-right: 0.75rem;
+    font-size: 0.72rem;
   }
 
   .panel-station,
