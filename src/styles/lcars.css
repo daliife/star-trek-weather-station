@@ -1,7 +1,7 @@
 :root {
   --lcars-bg: #000000;
   --lcars-text: #f3e6c6;
-  --lcars-muted: #8a7d68;
+  --lcars-muted: #a89878;
   --golden-tanoi: #eb943a;
   --almond: #d29b7f;
   --pale-canary: #fff3a0;
@@ -14,7 +14,7 @@
   --lilac: #c082a9;
   --red-alert: #cf4f4f;
   --offline: #4a4a66;
-  --inactive-station: #8a5318;
+  --inactive-station: #7a4814;
   --inactive-forecast: #3d3558;
   --inactive-history: #4a3a6a;
   --inactive-prefs: #3a4a5c;
@@ -46,7 +46,6 @@ body {
   font-family: var(--font);
   font-weight: 400;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 body {
@@ -66,6 +65,12 @@ button {
 
 button:disabled {
   cursor: default;
+}
+
+.skip-link,
+.visually-hidden {
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .skip-link {
@@ -102,6 +107,7 @@ button:disabled {
   min-height: 100dvh;
   padding: 0.55rem 0.5rem 0.55rem 0.5rem;
   position: relative;
+  text-transform: uppercase;
 }
 
 /* Composite LCARS L: spine + arm, outer curve on the spine, concave fillet at the inner join. */
@@ -289,7 +295,7 @@ button:disabled {
 
 .pill-station:not(.is-active) {
   background: var(--inactive-station);
-  color: #f3d2b0;
+  color: #f3e6c6;
 }
 
 .pill-forecast:not(.is-active) {
@@ -348,8 +354,8 @@ button:disabled {
   }
 
   .pill-station:not(.is-active):hover {
-    background: #a86820;
-    color: #2a1408;
+    background: #c08030;
+    color: #1a0f00;
   }
 
   .pill-forecast:hover {
@@ -373,8 +379,8 @@ button:disabled {
   }
 
   .pill-prefs:hover {
-    background: #5a7a94;
-    color: #0b1420;
+    background: #6a8aa4;
+    color: #041018;
   }
 
   .pill-lang:hover:not(.is-active) {
