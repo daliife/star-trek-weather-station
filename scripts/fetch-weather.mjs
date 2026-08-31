@@ -9,7 +9,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { fetchOpenMeteoSeries, fetchWundergroundForecast, fetchWundergroundHistory, isForecastFresh, isHistoryFresh, touchLastDays } from './weather-series.mjs';
+import { fetchOpenMeteoCurrent, fetchOpenMeteoSeries, fetchWundergroundForecast, fetchWundergroundHistory, isForecastFresh, isHistoryFresh, touchLastDays } from './weather-series.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_PATH = resolve(ROOT, 'public/data/current.json');
@@ -146,54 +146,6 @@ async function fetchWunderground(apiKey, station) {
   };
 }
 
-async function fetchOpenMeteo(station) {
-  const url = new URL('https://api.open-meteo.com/v1/forecast');
-  url.searchParams.set('latitude', String(station.lat));
-  url.searchParams.set('longitude', String(station.lon));
-  url.searchParams.set(
-    'current',
-    'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,precipitation,surface_pressure',
-  );
-  url.searchParams.set('daily', 'precipitation_sum,sunrise,sunset');
-  url.searchParams.set('forecast_days', '1');
-  url.searchParams.set('timezone', 'auto');
-
-  const { response, body, text } = await fetchJson(url);
-  if (!response.ok) {
-    throw new Error(`Open-Meteo request failed HTTP ${response.status}: ${text.slice(0, 400)}`);
-  }
-
-  const current = body?.current;
-  if (!current) {
-    throw new Error('Open-Meteo response had no current block.');
-  }
-
-  const todayRain = body?.daily?.precipitation_sum?.[0];
-  const rise = /T(\d{2}:\d{2})/.exec(String(body?.daily?.sunrise?.[0] ?? ''))?.[1];
-  const set = /T(\d{2}:\d{2})/.exec(String(body?.daily?.sunset?.[0] ?? ''))?.[1];
-
-  return {
-    source: 'open-meteo',
-    stationId: station.stationId,
-    location: { name: station.name, region: station.region, country: station.country },
-    fetchedAt: isoNow(),
-    observedAt: isoNow(),
-    status: 'ok',
-    precipRate: typeof current.precipitation === 'number' ? current.precipitation : 0,
-    metric: {
-      temp: requireNumber(current.temperature_2m, 'temperature_2m'),
-      feelsLike: requireNumber(current.apparent_temperature, 'apparent_temperature'),
-      humidity: requireNumber(current.relative_humidity_2m, 'relative_humidity_2m'),
-      windSpeed: requireNumber(current.wind_speed_10m, 'wind_speed_10m'),
-      windGust: requireNumber(current.wind_gusts_10m, 'wind_gusts_10m'),
-      windDir: requireNumber(current.wind_direction_10m, 'wind_direction_10m'),
-      ...(typeof current.surface_pressure === 'number' ? { pressure: current.surface_pressure } : {}),
-      ...(typeof todayRain === 'number' ? { precipTotal: todayRain } : {}),
-    },
-    ...(rise && set ? { sun: { rise, set } } : {}),
-  };
-}
-
 function hasForecast(series) {
   return Array.isArray(series?.hourly) && Array.isArray(series?.daily) && series.daily.length > 0;
 }
@@ -316,7 +268,7 @@ async function main() {
     console.warn(
       `WU_API_KEY is not set. Falling back to Open-Meteo (${station.lat}N, ${station.lon}E) for ${station.stationId}.`,
     );
-    writeSnapshot(await withOpenMeteoSeries(await fetchOpenMeteo(station), station));
+    writeSnapshot(await withOpenMeteoSeries(await fetchOpenMeteoCurrent(station), station));
     return;
   }
 
@@ -331,7 +283,7 @@ async function main() {
       console.error(error.message);
       if (error.detail) console.error(error.detail);
       console.warn(`Falling back to Open-Meteo (${station.lat}N, ${station.lon}E) for ${station.stationId}.`);
-      writeSnapshot(await withOpenMeteoSeries(await fetchOpenMeteo(station), station));
+      writeSnapshot(await withOpenMeteoSeries(await fetchOpenMeteoCurrent(station), station));
       return;
     }
     console.error('Weather fetch failed.');

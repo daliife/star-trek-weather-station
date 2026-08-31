@@ -121,6 +121,60 @@ async function fetchJson(url) {
   return { response, body, text };
 }
 
+function isoNow() {
+  return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
+export async function fetchOpenMeteoCurrent(station) {
+  const url = new URL('https://api.open-meteo.com/v1/forecast');
+  url.searchParams.set('latitude', String(station.lat));
+  url.searchParams.set('longitude', String(station.lon));
+  url.searchParams.set(
+    'current',
+    'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,precipitation,surface_pressure',
+  );
+  url.searchParams.set('daily', 'precipitation_sum,sunrise,sunset');
+  url.searchParams.set('forecast_days', '1');
+  url.searchParams.set('timezone', 'auto');
+  const { response, body, text } = await fetchJson(url);
+  if (!response.ok) throw new Error(`Open-Meteo request failed HTTP ${response.status}: ${text.slice(0, 400)}`);
+  const current = body?.current;
+  if (!current) throw new Error('Open-Meteo response had no current block.');
+  const temp = finite(current.temperature_2m);
+  const feels = finite(current.apparent_temperature);
+  const humidity = finite(current.relative_humidity_2m);
+  const windSpeed = finite(current.wind_speed_10m);
+  const windGust = finite(current.wind_gusts_10m);
+  const windDir = finite(current.wind_direction_10m);
+  if (temp === null || feels === null || humidity === null || windSpeed === null || windGust === null || windDir === null) {
+    throw new Error('Open-Meteo current block was incomplete.');
+  }
+  const todayRain = finite(body?.daily?.precipitation_sum?.[0]);
+  const pressure = finite(current.surface_pressure);
+  const sun = sunPair(body?.daily?.sunrise?.[0], body?.daily?.sunset?.[0]);
+  const now = isoNow();
+  return {
+    source: 'open-meteo',
+    stationId: station.stationId,
+    location: { name: station.name, region: station.region, country: station.country },
+    fetchedAt: now,
+    observedAt: now,
+    status: 'ok',
+    precipRate: finite(current.precipitation) ?? 0,
+    metric: {
+      temp,
+      feelsLike: feels,
+      humidity,
+      windSpeed,
+      windGust,
+      windDir,
+      ...(pressure !== null ? { pressure } : {}),
+      ...(todayRain !== null ? { precipTotal: todayRain } : {}),
+    },
+    ...(sun ? { sun } : {}),
+  };
+}
+
 function wuUrl(path, params) {
   const url = new URL(path, 'https://api.weather.com');
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, String(value));

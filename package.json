@@ -8,6 +8,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "test": "vitest run",
+    "typecheck": "tsc --noEmit",
     "fetch-weather": "node scripts/fetch-weather.mjs"
   },
   "engines": {
@@ -19,6 +20,7 @@
     "astro": "^7.2.9"
   },
   "devDependencies": {
+    "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   }
 }

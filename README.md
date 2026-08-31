@@ -80,7 +80,7 @@ Tokens and frame live in `src/styles/lcars.css` (Antonio, own elbows/pills — n
 
 1. Add repo secret `WU_API_KEY`.
 2. Set Pages source to **GitHub Actions**.
-3. `.github/workflows/deploy.yml` runs on push to `main` and `workflow_dispatch` (test → fetch snapshot → build → deploy `dist/`), and on a 15-minute cron that skips tests. GitHub often delays scheduled workflows past 15 minutes (gaps over 30 minutes happen). Live JSON is not committed back to git.
+3. `.github/workflows/deploy.yml` runs on push to `main` and `workflow_dispatch` (test → fetch snapshot → build → deploy `dist/`). The 15-minute cron skips tests and, when `dist/` is already cached for that commit, only refreshes `current.json`. GitHub often delays scheduled workflows past 15 minutes. Live JSON is not committed back to git.
 
 `astro.config.mjs` sets `base` to `/star-trek-weather-station/` for project Pages. Change that if you later use a custom domain or a user site.
 

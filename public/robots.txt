@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://daliife.github.io/star-trek-weather-station/sitemap.xml

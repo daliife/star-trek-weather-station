@@ -18,17 +18,37 @@ const faviconPng = asset('favicon-32.png');
 const faviconSvg = asset('favicon.svg');
 const jsonLd = JSON.stringify({
   '@context': 'https://schema.org',
-  '@type': 'WebApplication',
-  name: 'Star Trek Weather Station',
-  alternateName: `LCARS ${station.name}`,
-  description,
-  url: pageUrl,
-  image: ogImage,
-  applicationCategory: 'WeatherApplication',
-  operatingSystem: 'Web',
-  inLanguage: ['en', 'ca', 'es'],
-  isAccessibleForFree: true,
-  offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+  '@graph': [
+    {
+      '@type': 'WebApplication',
+      name: 'Star Trek Weather Station',
+      alternateName: `LCARS ${station.name}`,
+      description,
+      url: pageUrl,
+      image: ogImage,
+      applicationCategory: 'WeatherApplication',
+      operatingSystem: 'Web',
+      inLanguage: ['en', 'ca', 'es'],
+      isAccessibleForFree: true,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+    },
+    {
+      '@type': ['Place', 'WeatherStation'],
+      name: station.name,
+      identifier: station.stationId,
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: station.lat,
+        longitude: station.lon,
+      },
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: station.name,
+        addressRegion: station.region,
+        addressCountry: station.country,
+      },
+    },
+  ],
 });
 ---
 

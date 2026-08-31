@@ -27,16 +27,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Restore dist cache
+        uses: actions/cache@v4
+        id: dist-cache
+        with:
+          path: dist
+          key: dist-${{ github.sha }}
+
       - name: Setup pnpm
+        if: github.event_name != 'schedule' || steps.dist-cache.outputs.cache-hit != 'true'
         uses: pnpm/action-setup@v4
 
       - name: Setup Node
+        if: github.event_name != 'schedule' || steps.dist-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
 
+      - name: Setup Node (fetch only)
+        if: github.event_name == 'schedule' && steps.dist-cache.outputs.cache-hit == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Install
+        if: github.event_name != 'schedule' || steps.dist-cache.outputs.cache-hit != 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Test
@@ -47,10 +63,17 @@ jobs:
         env:
           WU_API_KEY: ${{ secrets.WU_API_KEY }}
           SNAPSHOT_URL: https://daliife.github.io/star-trek-weather-station/data/current.json
-        run: pnpm fetch-weather
+        run: node scripts/fetch-weather.mjs
 
       - name: Build
+        if: github.event_name != 'schedule' || steps.dist-cache.outputs.cache-hit != 'true'
         run: pnpm build
+
+      - name: Refresh snapshot in dist
+        if: github.event_name == 'schedule' && steps.dist-cache.outputs.cache-hit == 'true'
+        run: |
+          mkdir -p dist/data
+          cp public/data/current.json dist/data/current.json
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

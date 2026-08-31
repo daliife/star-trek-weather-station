@@ -1,10 +1,14 @@
+---
+import { initial } from '../lib/ssr-snapshot';
+---
+
 <section class="readout">
-  <div class="status-pill visually-hidden" data-bind="opsStatus" aria-live="polite" aria-atomic="true">Normal</div>
+  <div class="status-pill visually-hidden" data-bind="opsStatus" aria-live="polite" aria-atomic="true">{initial.opsStatus}</div>
   <div class="temp-block">
     <span class="metric-label" data-i18n="airTemp">Temperature</span>
     <div class="temp-line">
-      <span class="temp" data-bind="temp">—</span>
-      <span class="temp-unit" data-bind="tempUnit">°C</span>
+      <span class="temp" data-bind="temp">{initial.temp}</span>
+      <span class="temp-unit" data-bind="tempUnit">{initial.tempUnit}</span>
     </div>
   </div>
   <div class="metric-pair">
@@ -12,22 +16,22 @@
     <div class="metric-tiles">
       <div class="metric-tile">
         <span class="metric-label" data-i18n="feelsLike">Feels like</span>
-        <span class="metric-value" data-bind="feels">—</span>
+        <span class="metric-value" data-bind="feels">{initial.feels}</span>
       </div>
       <div class="metric-tile">
         <span class="metric-label" data-i18n="wind">Wind</span>
         <span class="metric-value">
-          <span data-bind="wind">—</span>
-          <span class="metric-unit" data-bind="windUnit"></span>
+          <span data-bind="wind">{initial.wind}</span>
+          <span class="metric-unit" data-bind="windUnit">{initial.windUnit}</span>
         </span>
       </div>
       <div class="metric-tile">
         <span class="metric-label" data-i18n="sunrise">Sunrise</span>
-        <span class="metric-value" data-bind="sunrise">—</span>
+        <span class="metric-value" data-bind="sunrise">{initial.sunrise}</span>
       </div>
       <div class="metric-tile">
         <span class="metric-label" data-i18n="sunset">Sunset</span>
-        <span class="metric-value" data-bind="sunset">—</span>
+        <span class="metric-value" data-bind="sunset">{initial.sunset}</span>
       </div>
     </div>
   </div>

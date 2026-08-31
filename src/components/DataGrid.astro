@@ -1,29 +1,33 @@
+---
+import { initial } from '../lib/ssr-snapshot';
+---
+
 <section class="datagrid">
   <div class="data-spine" aria-hidden="true"></div>
   <div class="data-body" role="list">
     <div class="row" role="listitem">
       <span class="row-label" data-i18n="humidity">Humidity</span>
-      <span class="row-value" data-bind="humidity">—</span>
+      <span class="row-value" data-bind="humidity">{initial.humidity}</span>
     </div>
     <div class="row" role="listitem">
       <span class="row-label" data-i18n="pressure">Pressure</span>
-      <span class="row-value" data-bind="pressure">—</span>
+      <span class="row-value" data-bind="pressure">{initial.pressure}</span>
     </div>
     <div class="row" role="listitem">
       <span class="row-label" data-i18n="gust">Gust</span>
-      <span class="row-value" data-bind="gust">—</span>
+      <span class="row-value" data-bind="gust">{initial.gust}</span>
     </div>
     <div class="row" role="listitem">
       <span class="row-label" data-i18n="precipRate">Precip.</span>
-      <span class="row-value" data-bind="precipRate">—</span>
+      <span class="row-value" data-bind="precipRate">{initial.precipRate}</span>
     </div>
     <div class="row" role="listitem">
       <span class="row-label" data-i18n="direction">Direction</span>
-      <span class="row-value"><span data-bind="direction">—</span> <span data-bind="cardinal"></span></span>
+      <span class="row-value"><span data-bind="direction">{initial.direction}</span> <span data-bind="cardinal">{initial.cardinal}</span></span>
     </div>
     <div class="row" role="listitem">
       <span class="row-label" data-i18n="precipToday">Today</span>
-      <span class="row-value" data-bind="precipToday">—</span>
+      <span class="row-value" data-bind="precipToday">{initial.precipToday}</span>
     </div>
   </div>
 </section>

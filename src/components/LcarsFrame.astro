@@ -1,5 +1,5 @@
 ---
-import station from '../config/station.json';
+import { initial } from '../lib/ssr-snapshot';
 import DataGrid from './DataGrid.astro';
 import ForecastPanel from './ForecastPanel.astro';
 import HistoryPanel from './HistoryPanel.astro';
@@ -7,15 +7,15 @@ import PrefsModal from './PrefsModal.astro';
 import Readout from './Readout.astro';
 ---
 
-<div class="console is-booting" data-state="ready" data-view="station" data-lang="en" data-units="metric">
+<div class="console is-booting" data-state={initial.state} data-view="station" data-lang="en" data-units="metric">
   <a class="skip-link" href="#stage" data-i18n="skip">Skip to weather</a>
-  <h1 class="visually-hidden">Star Trek Weather Station · {station.name}</h1>
+  <h1 class="visually-hidden">Star Trek Weather Station · {initial.location}</h1>
   <div class="elbow elbow-nw">
     <div class="elbow-spine" aria-hidden="true"></div>
     <span class="elbow-fillet" aria-hidden="true"></span>
     <div class="elbow-arm seg seg-location">
-      <span class="seg-k visually-hidden" data-bind="region">{station.region}</span>
-      <span data-bind="location">{station.name}</span>
+      <span class="seg-k visually-hidden" data-bind="region">{initial.region}</span>
+      <span data-bind="location">{initial.location}</span>
     </div>
   </div>
 
@@ -38,12 +38,12 @@ import Readout from './Readout.astro';
 
   <header class="header">
     <div class="seg seg-id finger">
-      <span class="seg-k visually-hidden" data-bind="stationKey">Station</span>
-      <span data-bind="stationId">{station.stationId}</span>
+      <span class="seg-k visually-hidden" data-bind="stationKey">{initial.stationKey}</span>
+      <span data-bind="stationId">{initial.stationId}</span>
     </div>
     <div class="seg seg-observed finger finger-last">
       <span class="seg-k visually-hidden" data-i18n="observed">Reading</span>
-      <span data-bind="observed">—</span>
+      <span data-bind="observed">{initial.observed}</span>
     </div>
     <div class="chrono">
       <span class="visually-hidden" data-i18n="localTime">Local time</span>
@@ -68,14 +68,14 @@ import Readout from './Readout.astro';
     <span class="elbow-fillet" aria-hidden="true"></span>
     <div class="elbow-arm seg seg-source">
       <span class="seg-k visually-hidden" data-i18n="source">Source</span>
-      <span data-bind="source">WunderGround</span>
+      <span data-bind="source">{initial.source}</span>
     </div>
   </div>
 
   <footer class="footer">
     <div class="seg seg-link finger finger-last">
       <span class="seg-k visually-hidden" data-i18n="link">Connection</span>
-      <span data-bind="linkStatus">Online</span>
+      <span data-bind="linkStatus">{initial.linkStatus}</span>
     </div>
   </footer>
 
