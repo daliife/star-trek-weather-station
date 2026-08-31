@@ -74,6 +74,8 @@ export interface WeatherSnapshot {
     rise: string;
     set: string;
   };
+  forecastFetchedAt?: string;
+  historyFetchedAt?: string;
 }
 
 export type OpsStatus = 'nominal' | 'precip' | 'expired' | 'offline' | 'loading' | 'error';

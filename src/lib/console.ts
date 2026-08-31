@@ -1,4 +1,4 @@
-import { dictionaries, isLang, type Dictionary } from './i18n';
+import { dictionaries, detectLang, isLang, type Dictionary } from './i18n';
 import { forecastHourLabel } from './forecast-label';
 import {
   initSound,
@@ -9,12 +9,8 @@ import {
   setSoundEnabled,
   unlockSound,
 } from './sound';
-import {
-  DEFAULT_STATION,
-  applyDocumentTitle,
-  fetchOpenMeteoSeries,
-  fetchOpenMeteoSnapshot,
-} from './station';
+import { parseWeatherSnapshot } from './snapshot';
+import { DEFAULT_STATION, applyDocumentTitle, fetchOpenMeteoSnapshot } from './station';
 import type { ConsoleView, Lang, LinkStatus, OpsStatus, Units, WeatherSeries, WeatherSnapshot } from './types';
 import {
   cardinalIndex,
@@ -37,6 +33,8 @@ import {
 const LANG_KEY = 'lcars.lang';
 const UNITS_KEY = 'lcars.units';
 const VIEW_KEY = 'lcars.view';
+const POLL_MS = 10 * 60 * 1000;
+const RESUME_MS = 5 * 60 * 1000;
 
 function weekdayFromDate(isoDate: string, weekdays: string[]): string {
   const [year, month, day] = isoDate.split('-').map(Number);
@@ -85,8 +83,7 @@ function isSound(value: string | null): value is 'on' | 'off' {
 }
 
 function loadLang(): Lang {
-  const stored = localStorage.getItem(LANG_KEY);
-  return isLang(stored) ? stored : 'en';
+  return detectLang(localStorage.getItem(LANG_KEY), navigator.language);
 }
 
 function loadUnits(): Units {
@@ -478,25 +475,34 @@ export function initWeatherConsole(root: HTMLElement) {
     if (snapshot) bind(root, 'observed', formatAge(snapshot.observedAt, dictionaries[lang]));
   }, 1000);
 
-  const loadWeather = async () => {
-    applyDocumentTitle(station.name);
-    series = null;
-    seriesFailed = false;
-    seriesPending = true;
-    showSeriesWait = false;
-    if (seriesWaitTimer !== null) window.clearTimeout(seriesWaitTimer);
-    seriesWaitTimer = window.setTimeout(() => {
-      showSeriesWait = true;
-      render();
-    }, 200);
+  let lastLoadAt = 0;
+
+  const loadWeather = async (quiet = false) => {
+    if (!quiet) {
+      applyDocumentTitle(station.name);
+      seriesFailed = false;
+      seriesPending = true;
+      showSeriesWait = false;
+      if (seriesWaitTimer !== null) window.clearTimeout(seriesWaitTimer);
+      seriesWaitTimer = window.setTimeout(() => {
+        showSeriesWait = true;
+        render();
+      }, 200);
+    }
 
     try {
       const response = await fetch(snapshotUrl(), { cache: 'no-store' });
       if (!response.ok) throw new Error(`Snapshot HTTP ${response.status}`);
-      snapshot = (await response.json()) as WeatherSnapshot;
+      const parsed = parseWeatherSnapshot(await response.json());
+      if (!parsed) throw new Error('Snapshot shape invalid');
+      snapshot = parsed;
       failed = false;
     } catch (error) {
       console.error(error);
+      if (quiet && snapshot) {
+        seriesPending = false;
+        return;
+      }
       try {
         snapshot = await fetchOpenMeteoSnapshot(station);
         failed = false;
@@ -507,29 +513,26 @@ export function initWeatherConsole(root: HTMLElement) {
       }
     }
 
-    try {
-      if (snapshot?.series) {
-        series = snapshot.series;
-        seriesFailed = false;
-      } else if (snapshot?.source === 'wunderground-pws') {
+    if (snapshot?.series) {
+      series = snapshot.series;
+      seriesFailed = false;
+    } else if (snapshot) {
+      if (!quiet) {
         series = null;
         seriesFailed = true;
-      } else {
-        series = await fetchOpenMeteoSeries(station);
-        seriesFailed = false;
       }
-      if (snapshot && !snapshot.sun && series?.sun && snapshot.source === 'open-meteo') {
-        snapshot = { ...snapshot, sun: series.sun };
-      }
-    } catch (error) {
-      console.error(error);
+    } else if (!quiet) {
       series = null;
       seriesFailed = true;
+    }
+    if (snapshot?.series?.sun && snapshot && !snapshot.sun) {
+      snapshot = { ...snapshot, sun: snapshot.series.sun };
     }
     seriesPending = false;
     showSeriesWait = false;
     if (seriesWaitTimer !== null) window.clearTimeout(seriesWaitTimer);
     seriesWaitTimer = null;
+    lastLoadAt = Date.now();
     render();
   };
 
@@ -538,6 +541,16 @@ export function initWeatherConsole(root: HTMLElement) {
   window.setTimeout(() => {
     root.classList.remove('is-booting');
   }, 700);
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    if (Date.now() - lastLoadAt > RESUME_MS) void loadWeather(true);
+  });
+
+  window.setInterval(() => {
+    if (document.hidden) return;
+    void loadWeather(true);
+  }, POLL_MS);
 
   void loadWeather();
 }

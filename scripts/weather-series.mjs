@@ -3,6 +3,7 @@ const SERIES_DAYS = 5;
 const SERIES_BARS = 7;
 const SERIES_PAST_DAYS = 31;
 const STATION_TZ = 'Europe/Madrid';
+const FORECAST_TTL_MS = 3 * 60 * 60 * 1000;
 
 function stationDate(offsetDays = 0) {
   const date = new Date();
@@ -126,34 +127,42 @@ function wuUrl(path, params) {
   return url;
 }
 
-export async function fetchWundergroundSeries(apiKey, station, todayTemp) {
+export function isForecastFresh(fetchedAt, now = Date.now()) {
+  const ms = Date.parse(String(fetchedAt ?? ''));
+  return Number.isFinite(ms) && now - ms < FORECAST_TTL_MS;
+}
+
+export function isHistoryFresh(fetchedAt, now = Date.now()) {
+  const ms = Date.parse(String(fetchedAt ?? ''));
+  if (!Number.isFinite(ms)) return false;
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: STATION_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return fmt.format(new Date(ms)) === fmt.format(new Date(now));
+}
+
+export function touchLastDays(lastDays, todayTemp) {
+  if (!Array.isArray(lastDays) || lastDays.length === 0) return lastDays;
   const today = stationDate(0);
-  const start = ymdCompact(stationDate(-SERIES_PAST_DAYS));
-  const end = ymdCompact(stationDate(-1));
+  return [...lastDays.slice(0, -1), { date: today, temp: todayTemp }];
+}
+
+export async function fetchWundergroundHistory(apiKey, station, todayTemp) {
+  const today = stationDate(0);
   const historyUrl = wuUrl('/v2/pws/history/daily', {
     stationId: station.stationId,
     format: 'json',
     units: 'm',
-    startDate: start,
-    endDate: end,
+    startDate: ymdCompact(stationDate(-SERIES_PAST_DAYS)),
+    endDate: ymdCompact(stationDate(-1)),
     numericPrecision: 'decimal',
     apiKey,
   });
-  const dailyUrl = wuUrl('/v3/wx/forecast/daily/5day', {
-    geocode: `${station.lat},${station.lon}`,
-    format: 'json',
-    units: 'm',
-    language: 'en-US',
-    apiKey,
-  });
-
-  const [history, daily] = await Promise.all([
-    fetchJson(historyUrl),
-    fetchJson(dailyUrl),
-  ]);
-
+  const history = await fetchJson(historyUrl);
   if (!history.response.ok) throw new Error(`WU history HTTP ${history.response.status}`);
-  if (!daily.response.ok) throw new Error(`WU daily forecast HTTP ${daily.response.status}`);
 
   const observations = Array.isArray(history.body?.observations) ? history.body.observations : [];
   const days = observations
@@ -186,7 +195,24 @@ export async function fetchWundergroundSeries(apiKey, station, todayTemp) {
   if (!week || !month) throw new Error('WU history ranges were incomplete.');
 
   const pastBars = days.slice(-(SERIES_BARS - 1)).map((day) => ({ date: day.date, temp: day.avg }));
-  const lastDays = [...pastBars, { date: today, temp: todayTemp }];
+  return {
+    yesterday: yesterdayRange,
+    week,
+    month,
+    lastDays: [...pastBars, { date: today, temp: todayTemp }],
+  };
+}
+
+export async function fetchWundergroundForecast(apiKey, station) {
+  const dailyUrl = wuUrl('/v3/wx/forecast/daily/5day', {
+    geocode: `${station.lat},${station.lon}`,
+    format: 'json',
+    units: 'm',
+    language: 'en-US',
+    apiKey,
+  });
+  const daily = await fetchJson(dailyUrl);
+  if (!daily.response.ok) throw new Error(`WU daily forecast HTTP ${daily.response.status}`);
 
   const dailyDates = daily.body?.validTimeLocal ?? [];
   const dailyHighs = daily.body?.calendarDayTemperatureMax ?? daily.body?.temperatureMax ?? [];
@@ -220,15 +246,19 @@ export async function fetchWundergroundSeries(apiKey, station, todayTemp) {
   return {
     hourly: upcoming,
     daily: forecastDays,
-    yesterday: yesterdayRange,
-    week,
-    month,
-    lastDays,
     sun: sunPair(
       daily.body?.sunriseTimeLocal?.[0] ?? daily.body?.sunriseTimeUtc?.[0],
       daily.body?.sunsetTimeLocal?.[0] ?? daily.body?.sunsetTimeUtc?.[0],
     ),
   };
+}
+
+export async function fetchWundergroundSeries(apiKey, station, todayTemp) {
+  const [history, forecast] = await Promise.all([
+    fetchWundergroundHistory(apiKey, station, todayTemp),
+    fetchWundergroundForecast(apiKey, station),
+  ]);
+  return { ...forecast, ...history };
 }
 
 export async function fetchOpenMeteoSeries(station) {
@@ -330,4 +360,14 @@ export async function fetchOpenMeteoSeries(station) {
   };
 }
 
-export { dateFromLocal, finite, hourFromLocal, hourLabel, hoursFromDaypart, rangeOf, stampMs, sunPair };
+export {
+  FORECAST_TTL_MS,
+  dateFromLocal,
+  finite,
+  hourFromLocal,
+  hourLabel,
+  hoursFromDaypart,
+  rangeOf,
+  stampMs,
+  sunPair,
+};

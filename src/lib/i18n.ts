@@ -11,3 +11,12 @@ export type Dictionary = (typeof dictionaries)[Lang];
 export function isLang(value: string | null): value is Lang {
   return value === 'ca' || value === 'es' || value === 'en';
 }
+
+export function detectLang(stored: string | null, navigatorLanguage?: string): Lang {
+  if (isLang(stored)) return stored;
+  const tag = (navigatorLanguage ?? '').toLowerCase();
+  if (tag.startsWith('ca')) return 'ca';
+  if (tag.startsWith('es')) return 'es';
+  if (tag.startsWith('en')) return 'en';
+  return 'en';
+}

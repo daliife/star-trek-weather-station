@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import station from '../config/station.json';
-import { dictionaries, isLang, langs } from './i18n';
+import { dictionaries, detectLang, isLang, langs } from './i18n';
 
 describe('i18n', () => {
   it('accepts the three console languages', () => {
@@ -10,6 +10,13 @@ describe('i18n', () => {
     expect(isLang('es')).toBe(true);
     expect(isLang('fr')).toBe(false);
     expect(isLang(null)).toBe(false);
+  });
+
+  it('detects ca/es from the browser when nothing is stored', () => {
+    expect(detectLang(null, 'ca-ES')).toBe('ca');
+    expect(detectLang(null, 'es')).toBe('es');
+    expect(detectLang(null, 'fr-FR')).toBe('en');
+    expect(detectLang('es', 'ca-ES')).toBe('es');
   });
 
   it('keeps the same copy keys in every dictionary', () => {

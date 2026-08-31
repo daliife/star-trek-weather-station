@@ -72,7 +72,7 @@ The PWS payload has no sky-condition phrase, so the center readout is temperatur
 
 ## Language, units, and sound
 
-Labels live in `src/i18n/{en,ca,es}.json` (numbers stay numeric). Default language is English; default units are metric (°C, km/h, hPa, mm). Imperial is °F, mph, inHg, and inches. Panel beeps default off and stay silent when `prefers-reduced-motion` is set. All three persist in `localStorage`.
+Labels live in `src/i18n/{en,ca,es}.json` (numbers stay numeric). Default language follows the browser (`ca` / `es` / `en`) until you pick one; default units are metric (°C, km/h, hPa, mm). Imperial is °F, mph, inHg, and inches. Panel beeps default off and stay silent when `prefers-reduced-motion` is set. All three persist in `localStorage`.
 
 Tokens and frame live in `src/styles/lcars.css` (Antonio, own elbows/pills — no LCARS CSS kit). The interactive island is `WeatherConsole.astro`.
 
@@ -88,6 +88,6 @@ Tokens and frame live in `src/styles/lcars.css` (Antonio, own elbows/pills — n
 
 PWS contributor keys are typically capped at **1500 calls/day** and **30/minute**. Usage is on the WU account under [API Keys](https://www.wunderground.com/member/api-keys) → Show Usage.
 
-The public site does not spend that quota. The browser never sees `WU_API_KEY`. Each visitor only loads `current.json` from Pages. Only `scripts/fetch-weather.mjs` in GitHub Actions (or a local `.env`) calls Weather Underground: current + history + daily forecast (**3 calls per run**).
+The public site does not spend that quota. The browser never sees `WU_API_KEY`. Each visitor only loads `current.json` from Pages. Only `scripts/fetch-weather.mjs` in GitHub Actions (or a local `.env`) calls Weather Underground: **current every run**, plus forecast about every 3 hours and history once per Europe/Madrid day (reused from the live snapshot when still fresh).
 
-The deploy cron is every 15 minutes: about **96 runs / 288 WU calls/day** if GitHub honors the schedule (in practice often fewer), plus a burst on each push to `main` or a manual run. That stays under 1500. If WU returns 429 or an empty observation, the script falls back to Open-Meteo for the whole snapshot so the console stays up.
+The deploy cron is every 15 minutes: about **96 current calls/day** plus ~8 forecast and 1 history if GitHub honors the schedule (in practice often fewer), plus a burst on each push to `main` or a manual run. That stays under 1500. The console polls `current.json` every 10 minutes while the tab is visible. If WU returns 429 or an empty observation, the script falls back to Open-Meteo for the whole snapshot so the console stays up.

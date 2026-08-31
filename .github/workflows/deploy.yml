@@ -46,6 +46,7 @@ jobs:
       - name: Fetch weather snapshot
         env:
           WU_API_KEY: ${{ secrets.WU_API_KEY }}
+          SNAPSHOT_URL: https://daliife.github.io/star-trek-weather-station/data/current.json
         run: pnpm fetch-weather
 
       - name: Build

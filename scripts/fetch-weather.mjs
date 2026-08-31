@@ -9,7 +9,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { fetchOpenMeteoSeries, fetchWundergroundSeries } from './weather-series.mjs';
+import { fetchOpenMeteoSeries, fetchWundergroundForecast, fetchWundergroundHistory, isForecastFresh, isHistoryFresh, touchLastDays } from './weather-series.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_PATH = resolve(ROOT, 'public/data/current.json');
@@ -194,15 +194,104 @@ async function fetchOpenMeteo(station) {
   };
 }
 
-async function withWundergroundSeries(snapshot, apiKey, station) {
+function hasForecast(series) {
+  return Array.isArray(series?.hourly) && Array.isArray(series?.daily) && series.daily.length > 0;
+}
+
+function hasHistory(series) {
+  return Boolean(series?.yesterday && series?.week && series?.month && Array.isArray(series?.lastDays));
+}
+
+async function loadPreviousSnapshot() {
+  const liveUrl = process.env.SNAPSHOT_URL?.trim();
+  if (liveUrl) {
+    try {
+      const { response, body } = await fetchJson(liveUrl);
+      if (response.ok && body && typeof body === 'object') {
+        console.log(`Loaded previous snapshot from ${liveUrl}`);
+        return body;
+      }
+    } catch (error) {
+      console.warn(`Live snapshot unavailable (${liveUrl}): ${error.message}`);
+    }
+  }
+  if (!existsSync(OUT_PATH)) return null;
   try {
-    const series = await fetchWundergroundSeries(apiKey, station, snapshot.metric.temp);
-    if (series.sun) snapshot.sun = series.sun;
-    delete series.sun;
-    snapshot.series = series;
+    return JSON.parse(readFileSync(OUT_PATH, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+async function withWundergroundSeries(snapshot, apiKey, station, previous) {
+  const sameSource = previous?.source === 'wunderground-pws';
+  const prevSeries = sameSource ? previous.series : null;
+  const reuseForecast = sameSource && hasForecast(prevSeries) && isForecastFresh(previous.forecastFetchedAt ?? previous.fetchedAt);
+  const reuseHistory = sameSource && hasHistory(prevSeries) && isHistoryFresh(previous.historyFetchedAt ?? previous.fetchedAt);
+
+  let forecast = reuseForecast
+    ? { hourly: prevSeries.hourly, daily: prevSeries.daily, sun: previous.sun ?? prevSeries.sun }
+    : null;
+  let history = reuseHistory
+    ? {
+        yesterday: prevSeries.yesterday,
+        week: prevSeries.week,
+        month: prevSeries.month,
+        lastDays: prevSeries.lastDays,
+      }
+    : null;
+
+  const jobs = [];
+  if (!reuseForecast) {
+    jobs.push(
+      fetchWundergroundForecast(apiKey, station).then((value) => {
+        forecast = value;
+      }),
+    );
+  }
+  if (!reuseHistory) {
+    jobs.push(
+      fetchWundergroundHistory(apiKey, station, snapshot.metric.temp).then((value) => {
+        history = value;
+      }),
+    );
+  }
+
+  console.log(
+    `WU series forecast=${reuseForecast ? 'reuse' : 'fetch'} history=${reuseHistory ? 'reuse' : 'fetch'}.`,
+  );
+
+  try {
+    if (jobs.length) await Promise.all(jobs);
   } catch (error) {
     console.warn(`WU series unavailable; leaving Previsió/Històric empty rather than mixing Open-Meteo. ${error.message}`);
   }
+
+  if (!forecast && hasForecast(prevSeries)) {
+    forecast = { hourly: prevSeries.hourly, daily: prevSeries.daily, sun: previous.sun ?? prevSeries.sun };
+  }
+  if (!history && hasHistory(prevSeries)) {
+    history = {
+      yesterday: prevSeries.yesterday,
+      week: prevSeries.week,
+      month: prevSeries.month,
+      lastDays: prevSeries.lastDays,
+    };
+  }
+  if (!forecast || !history) return snapshot;
+
+  history.lastDays = touchLastDays(history.lastDays, snapshot.metric.temp);
+  if (forecast.sun) snapshot.sun = forecast.sun;
+  snapshot.series = {
+    hourly: forecast.hourly,
+    daily: forecast.daily,
+    yesterday: history.yesterday,
+    week: history.week,
+    month: history.month,
+    lastDays: history.lastDays,
+  };
+  snapshot.forecastFetchedAt = reuseForecast ? previous.forecastFetchedAt ?? previous.fetchedAt : snapshot.fetchedAt;
+  snapshot.historyFetchedAt = reuseHistory ? previous.historyFetchedAt ?? previous.fetchedAt : snapshot.fetchedAt;
   return snapshot;
 }
 
@@ -232,10 +321,11 @@ async function main() {
   }
 
   try {
-    // Current + history + daily forecast (day/night parts). Cron */15 stays under the typical 1500/day cap.
+    // Current every run; forecast ~3 h; history once per Europe/Madrid day. Cron */15 stays under 1500/day.
     // The browser never uses this key and does not call Open-Meteo when the snapshot is WU.
-    console.log(`WU PWS current + series for ${station.stationId}.`);
-    writeSnapshot(await withWundergroundSeries(await fetchWunderground(apiKey, station), apiKey, station));
+    const previous = await loadPreviousSnapshot();
+    console.log(`WU PWS current for ${station.stationId}.`);
+    writeSnapshot(await withWundergroundSeries(await fetchWunderground(apiKey, station), apiKey, station, previous));
   } catch (error) {
     if (error?.code === 'WU_FORBIDDEN' || error?.code === 'WU_RATE_LIMIT' || error?.code === 'WU_NO_DATA') {
       console.error(error.message);

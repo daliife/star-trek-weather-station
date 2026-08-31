@@ -5,9 +5,12 @@ import {
   hourFromLocal,
   hourLabel,
   hoursFromDaypart,
+  isForecastFresh,
+  isHistoryFresh,
   rangeOf,
   stampMs,
   sunPair,
+  touchLastDays,
 } from './weather-series.mjs';
 
 describe('WU timestamp helpers', () => {
@@ -80,5 +83,26 @@ describe('series helpers', () => {
       { hour: 'D:2026-09-01', temp: 28, rain: 0, chance: 5 },
       { hour: 'N:2026-09-01', temp: 16, rain: 1, chance: 40 },
     ]);
+  });
+});
+
+describe('series cache freshness', () => {
+  it('treats forecast as fresh for three hours and history for the Madrid calendar day', () => {
+    const now = Date.parse('2026-08-31T12:00:00Z');
+    expect(isForecastFresh('2026-08-31T10:00:00Z', now)).toBe(true);
+    expect(isForecastFresh('2026-08-31T08:00:00Z', now)).toBe(false);
+    expect(isHistoryFresh('2026-08-31T01:00:00Z', now)).toBe(true);
+    expect(isHistoryFresh('2026-08-30T10:00:00Z', now)).toBe(false);
+  });
+
+  it('updates the last lastDays point to today', () => {
+    const next = touchLastDays(
+      [
+        { date: '2026-08-29', temp: 20 },
+        { date: '2026-08-30', temp: 21 },
+      ],
+      33,
+    );
+    expect(next?.at(-1)?.temp).toBe(33);
   });
 });
