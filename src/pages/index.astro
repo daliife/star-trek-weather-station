@@ -1,6 +1,8 @@
 ---
 import WeatherConsole from '../components/WeatherConsole.astro';
 import station from '../config/station.json';
+import antonio400 from '@fontsource/antonio/files/antonio-latin-400-normal.woff2?url';
+import antonio700 from '@fontsource/antonio/files/antonio-latin-700-normal.woff2?url';
 import '@fontsource/antonio/latin-400.css';
 import '@fontsource/antonio/latin-700.css';
 import '../styles/lcars.css';
@@ -43,6 +45,8 @@ const jsonLd = JSON.stringify({
     <meta name="application-name" content="Star Trek Weather Station" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <title>{title}</title>
+    <link rel="preload" href={antonio400} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={antonio700} as="font" type="font/woff2" crossorigin />
     <link rel="canonical" href={pageUrl} />
     <link rel="icon" href={faviconPng} type="image/png" sizes="32x32" />
     <link rel="icon" href={faviconSvg} type="image/svg+xml" />

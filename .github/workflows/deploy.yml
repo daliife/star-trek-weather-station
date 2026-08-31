@@ -4,7 +4,8 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: '*/10 * * * *'
+    # GitHub often delays */15 past 15 min (median ~12–17, gaps can exceed 30).
+    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -17,8 +18,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,6 +40,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Test
+        if: github.event_name != 'schedule'
         run: pnpm test
 
       - name: Fetch weather snapshot
@@ -51,13 +56,6 @@ jobs:
         with:
           path: dist
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

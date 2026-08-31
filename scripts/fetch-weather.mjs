@@ -232,7 +232,7 @@ async function main() {
   }
 
   try {
-    // Current + history + daily forecast (day/night parts). Cron */10 stays under the typical 1500/day cap.
+    // Current + history + daily forecast (day/night parts). Cron */15 stays under the typical 1500/day cap.
     // The browser never uses this key and does not call Open-Meteo when the snapshot is WU.
     console.log(`WU PWS current + series for ${station.stationId}.`);
     writeSnapshot(await withWundergroundSeries(await fetchWunderground(apiKey, station), apiKey, station));

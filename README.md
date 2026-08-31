@@ -4,7 +4,7 @@
 
 Weather from a backyard station in **Cabacés** (Priorat), drawn like a starship ops desk. Open the [live console](https://daliife.github.io/star-trek-weather-station/) and you get current conditions, a short forecast, and recent history on a full-screen TNG-style [LCARS](https://en.wikipedia.org/wiki/LCARS) panel — not a themed widget.
 
-The numbers come from PWS [ICABAC4](https://www.wunderground.com/weather/es/cabac%C3%A9s/ICABAC4) on Weather Underground. English, Catalan, and Spanish labels; metric or imperial units; optional panel beeps. Fan project. Not affiliated with Paramount, Star Trek, or Weather Underground.
+The numbers come from PWS [ICABAC4](https://www.wunderground.com/weather/es/cabac%C3%A9s/ICABAC4) on Weather Underground. English, Catalan, and Spanish labels; metric or imperial units; optional panel beeps (off until you turn them on). Fan project. Not affiliated with Paramount, Star Trek, or Weather Underground.
 
 ## What you see
 
@@ -72,7 +72,7 @@ The PWS payload has no sky-condition phrase, so the center readout is temperatur
 
 ## Language, units, and sound
 
-Labels live in `src/i18n/{en,ca,es}.json` (numbers stay numeric). Default language is English; default units are metric (°C, km/h, hPa, mm). Imperial is °F, mph, inHg, and inches. Hover/click beeps can be muted. All three persist in `localStorage`.
+Labels live in `src/i18n/{en,ca,es}.json` (numbers stay numeric). Default language is English; default units are metric (°C, km/h, hPa, mm). Imperial is °F, mph, inHg, and inches. Panel beeps default off and stay silent when `prefers-reduced-motion` is set. All three persist in `localStorage`.
 
 Tokens and frame live in `src/styles/lcars.css` (Antonio, own elbows/pills — no LCARS CSS kit). The interactive island is `WeatherConsole.astro`.
 
@@ -80,7 +80,7 @@ Tokens and frame live in `src/styles/lcars.css` (Antonio, own elbows/pills — n
 
 1. Add repo secret `WU_API_KEY`.
 2. Set Pages source to **GitHub Actions**.
-3. `.github/workflows/deploy.yml` runs on push to `main`, `workflow_dispatch`, and every 10 minutes: test → fetch snapshot → build → deploy `dist/`. Live JSON is not committed back to git.
+3. `.github/workflows/deploy.yml` runs on push to `main` and `workflow_dispatch` (test → fetch snapshot → build → deploy `dist/`), and on a 15-minute cron that skips tests. GitHub often delays scheduled workflows past 15 minutes (gaps over 30 minutes happen). Live JSON is not committed back to git.
 
 `astro.config.mjs` sets `base` to `/star-trek-weather-station/` for project Pages. Change that if you later use a custom domain or a user site.
 
@@ -90,4 +90,4 @@ PWS contributor keys are typically capped at **1500 calls/day** and **30/minute*
 
 The public site does not spend that quota. The browser never sees `WU_API_KEY`. Each visitor only loads `current.json` from Pages. Only `scripts/fetch-weather.mjs` in GitHub Actions (or a local `.env`) calls Weather Underground: current + history + daily forecast (**3 calls per run**).
 
-The deploy cron is every 10 minutes: about **144–432 WU calls/day**, plus a burst on each push to `main` or a manual run. That stays under 1500. If WU returns 429 or an empty observation, the script falls back to Open-Meteo for the whole snapshot so the console stays up.
+The deploy cron is every 15 minutes: about **96 runs / 288 WU calls/day** if GitHub honors the schedule (in practice often fewer), plus a burst on each push to `main` or a manual run. That stays under 1500. If WU returns 429 or an empty observation, the script falls back to Open-Meteo for the whole snapshot so the console stays up.

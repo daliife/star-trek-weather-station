@@ -2,11 +2,15 @@ const SOUND_KEY = 'lcars.sound';
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
-let enabled = true;
+let enabled = false;
 let lastHoverAt = 0;
 
+export function prefersReducedMotion(): boolean {
+  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 export function loadSoundEnabled(): boolean {
-  return localStorage.getItem(SOUND_KEY) !== 'off';
+  return localStorage.getItem(SOUND_KEY) === 'on';
 }
 
 export function initSound(): boolean {
@@ -20,7 +24,7 @@ export function setSoundEnabled(value: boolean): void {
 }
 
 export function unlockSound(): void {
-  if (!enabled) return;
+  if (!enabled || prefersReducedMotion()) return;
   const audio = context();
   if (audio.state === 'suspended') void audio.resume();
 }
@@ -48,14 +52,14 @@ export function playView(): void {
 }
 
 function whenReady(play: () => void): void {
-  if (!enabled || document.hidden) return;
+  if (!enabled || document.hidden || prefersReducedMotion()) return;
   const audio = context();
   if (audio.state === 'running') {
     play();
     return;
   }
   void audio.resume().then(() => {
-    if (enabled && !document.hidden) play();
+    if (enabled && !document.hidden && !prefersReducedMotion()) play();
   });
 }
 

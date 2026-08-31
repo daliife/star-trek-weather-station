@@ -5,6 +5,7 @@ import {
   playHover,
   playKey,
   playView,
+  prefersReducedMotion,
   setSoundEnabled,
   unlockSound,
 } from './sound';
@@ -406,7 +407,7 @@ export function initWeatherConsole(root: HTMLElement) {
 
   root.addEventListener('pointerdown', () => unlockSound(), { capture: true });
 
-  if (window.matchMedia('(hover: hover)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (window.matchMedia('(hover: hover)').matches && !prefersReducedMotion()) {
     root.querySelectorAll<HTMLButtonElement>('button.pill').forEach((btn) => {
       btn.addEventListener('pointerenter', () => playHover());
     });
