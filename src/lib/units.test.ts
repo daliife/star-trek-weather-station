@@ -7,6 +7,7 @@ import {
   formatCountdown,
   formatDegrees,
   formatStardate,
+  freshnessRemaining,
   formatPrecip,
   formatPressure,
   formatTemp,
@@ -83,6 +84,11 @@ describe('observation age', () => {
     expect(formatCountdown(1500)).toBe('00:01');
     expect(formatCountdown(61_000)).toBe('01:01');
     expect(formatCountdown(10 * 60 * 1000)).toBe('10:00');
+  });
+
+  it('counts remaining freshness against the 30 minute stale window', () => {
+    expect(freshnessRemaining('2026-08-30T20:40:00Z', now)).toBe(10 * 60 * 1000);
+    expect(freshnessRemaining('2026-08-30T20:29:00Z', now)).toBeLessThan(0);
   });
 
   it('renders a TNG-style stardate from local time', () => {

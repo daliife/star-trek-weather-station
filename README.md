@@ -80,7 +80,7 @@ Tokens and frame live in `src/styles/lcars.css` (Antonio, own elbows/pills — n
 
 1. Add repo secret `WU_API_KEY`.
 2. Set Pages source to **GitHub Actions**.
-3. `.github/workflows/deploy.yml` runs on push to `main` and `workflow_dispatch` (test → fetch snapshot → build → deploy `dist/`). The 15-minute cron skips tests and, when `dist/` is already cached for that commit, only refreshes `current.json`. GitHub often delays scheduled workflows past 15 minutes. Live JSON is not committed back to git.
+3. `.github/workflows/deploy.yml` runs on push to `main` and `workflow_dispatch` (test → fetch snapshot → build → deploy `dist/`). A 15-minute cron (minutes 7/22/37/52) plus an hourly backup at :17 skip tests and, when `dist/` is already cached for that commit, only refresh `current.json`. GitHub still delays or skips scheduled workflows on public repos, often by hours — the hourly job is the reliable floor. The console then pulls a fresh Open-Meteo reading in the browser if `current.json` is older than 30 minutes. Live JSON is not committed back to git.
 
 `astro.config.mjs` sets `base` to `/star-trek-weather-station/` for project Pages. Change that if you later use a custom domain or a user site.
 
@@ -88,6 +88,6 @@ Tokens and frame live in `src/styles/lcars.css` (Antonio, own elbows/pills — n
 
 PWS contributor keys are typically capped at **1500 calls/day** and **30/minute**. Usage is on the WU account under [API Keys](https://www.wunderground.com/member/api-keys) → Show Usage.
 
-The public site does not spend that quota. The browser never sees `WU_API_KEY`. Each visitor only loads `current.json` from Pages. Only `scripts/fetch-weather.mjs` in GitHub Actions (or a local `.env`) calls Weather Underground: **current every run**, plus forecast about every 3 hours and history once per Europe/Madrid day (reused from the live snapshot when still fresh).
+The public site does not spend that quota. The browser never sees `WU_API_KEY`. Visitors load `current.json` from Pages; if that file is stale they refresh current conditions from Open-Meteo. Only `scripts/fetch-weather.mjs` in GitHub Actions (or a local `.env`) calls Weather Underground: **current every run**, plus forecast about every 3 hours and history once per Europe/Madrid day (reused from the live snapshot when still fresh).
 
-The deploy cron is every 15 minutes: about **96 current calls/day** plus ~8 forecast and 1 history if GitHub honors the schedule (in practice often fewer), plus a burst on each push to `main` or a manual run. That stays under 1500. The console polls `current.json` every 10 minutes while the tab is visible. If WU returns 429 or an empty observation, the script falls back to Open-Meteo for the whole snapshot so the console stays up.
+The deploy cron aims for four runs per hour plus an hourly backup: about **96 current calls/day** plus ~8 forecast and 1 history if GitHub honors the 15-minute slots (in practice often the hourly job only), plus a burst on each push to `main` or a manual run. That stays under 1500. The console polls `current.json` every 10 minutes while the tab is visible; the cycle readout is the remaining freshness of the current reading (30 minutes), not that poll timer.

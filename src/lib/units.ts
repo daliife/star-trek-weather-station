@@ -1,6 +1,6 @@
 import type { Units } from './types';
 
-const STALE_MS = 30 * 60 * 1000;
+export const STALE_MS = 30 * 60 * 1000;
 const CALM_KMH = 0.5;
 
 export function cToF(c: number): number {
@@ -111,6 +111,10 @@ export function formatCountdown(ms: number): string {
   const minutes = String(Math.floor(total / 60)).padStart(2, '0');
   const seconds = String(total % 60).padStart(2, '0');
   return `${minutes}:${seconds}`;
+}
+
+export function freshnessRemaining(observedAt: string, now = Date.now()): number {
+  return STALE_MS - observationAge(observedAt, now);
 }
 
 export function formatStardate(date: Date): string {

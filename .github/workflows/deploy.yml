@@ -4,8 +4,11 @@ on:
   push:
     branches: [main]
   schedule:
-    # GitHub often delays */15 past 15 min (median ~12–17, gaps can exceed 30).
-    - cron: '*/15 * * * *'
+    # Public-repo cron is best-effort. 15-minute slots often skip for hours;
+    # the hourly job is the reliable floor. The console also refreshes current
+    # conditions from Open-Meteo when the snapshot is older than 30 minutes.
+    - cron: '7,22,37,52 * * * *'
+    - cron: '17 * * * *'
   workflow_dispatch:
 
 permissions:

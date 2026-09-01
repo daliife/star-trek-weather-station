@@ -11,7 +11,7 @@ import {
 } from './sound';
 import { isFullscreenActive, isFullscreenSupported, toggleFullscreen } from './fullscreen';
 import { isTheme, type ConsoleTheme } from './theme';
-import { parseWeatherSnapshot } from './snapshot';
+import { parseWeatherSnapshot, resolveCurrentSnapshot } from './snapshot';
 import { DEFAULT_STATION, applyDocumentTitle, fetchOpenMeteoSnapshot } from './station';
 import type { ConsoleView, Lang, LinkStatus, OpsStatus, Units, WeatherSeries, WeatherSnapshot } from './types';
 import {
@@ -25,6 +25,7 @@ import {
   formatPressure,
   formatTemp,
   formatWind,
+  freshnessRemaining,
   isCalm,
   isStale,
   precipRateUnit,
@@ -106,8 +107,8 @@ function loadTheme(): ConsoleTheme {
   return isTheme(stored) ? stored : 'classic';
 }
 
-function tickerLine(dict: Dictionary, lastLoadAt: number, now = Date.now()): string {
-  const remaining = lastLoadAt > 0 ? POLL_MS - (now - lastLoadAt) : 0;
+function tickerLine(dict: Dictionary, observedAt: string | undefined, now = Date.now()): string {
+  const remaining = observedAt ? freshnessRemaining(observedAt, now) : 0;
   return `${dict.poll}  ${formatCountdown(remaining)}`;
 }
 
@@ -373,7 +374,7 @@ export function initWeatherConsole(root: HTMLElement) {
     applyDocumentTitle(snapshot?.location.name ?? station.name);
     bind(root, 'clock', formatClock(new Date()));
     bind(root, 'stardate', formatStardate(new Date()));
-    bind(root, 'ticker', tickerLine(dict, lastLoadAt));
+    bind(root, 'ticker', tickerLine(dict, snapshot?.observedAt));
 
     const { ops, link } = snapshot || failed
       ? deriveStatus(snapshot, failed)
@@ -534,7 +535,7 @@ export function initWeatherConsole(root: HTMLElement) {
     const now = new Date();
     bind(root, 'clock', formatClock(now));
     bind(root, 'stardate', formatStardate(now));
-    bind(root, 'ticker', tickerLine(dictionaries[lang], lastLoadAt, now.getTime()));
+    bind(root, 'ticker', tickerLine(dictionaries[lang], snapshot?.observedAt, now.getTime()));
     if (snapshot) bind(root, 'observed', formatAge(snapshot.observedAt, dictionaries[lang]));
   }, 1000);
 
@@ -556,8 +557,22 @@ export function initWeatherConsole(root: HTMLElement) {
       if (!response.ok) throw new Error(`Snapshot HTTP ${response.status}`);
       const parsed = parseWeatherSnapshot(await response.json());
       if (!parsed) throw new Error('Snapshot shape invalid');
-      snapshot = parsed;
+      const pages = parsed;
       failed = false;
+      if (!isStale(pages.observedAt)) {
+        snapshot = pages;
+      } else {
+        const keepLive = snapshot && !isStale(snapshot.observedAt);
+        let live: WeatherSnapshot | null = null;
+        if (!keepLive) {
+          try {
+            live = await fetchOpenMeteoSnapshot(station);
+          } catch (staleError) {
+            console.error(staleError);
+          }
+        }
+        snapshot = resolveCurrentSnapshot(pages, keepLive ? snapshot : null, live);
+      }
     } catch (error) {
       console.error(error);
       if (quiet && snapshot) {

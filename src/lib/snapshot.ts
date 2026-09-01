@@ -1,4 +1,5 @@
 import type { WeatherSeries, WeatherSnapshot } from './types';
+import { isStale } from './units';
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
@@ -47,4 +48,24 @@ export function parseWeatherSnapshot(value: unknown): WeatherSnapshot | null {
     return rest;
   }
   return raw;
+}
+
+export function overlayFreshCurrent(cached: WeatherSnapshot, live: WeatherSnapshot): WeatherSnapshot {
+  return {
+    ...live,
+    series: cached.series ?? live.series,
+    forecastFetchedAt: cached.forecastFetchedAt,
+    historyFetchedAt: cached.historyFetchedAt,
+  };
+}
+
+export function resolveCurrentSnapshot(
+  pages: WeatherSnapshot,
+  displayed: WeatherSnapshot | null,
+  live: WeatherSnapshot | null,
+): WeatherSnapshot {
+  if (!isStale(pages.observedAt)) return pages;
+  if (displayed && !isStale(displayed.observedAt)) return overlayFreshCurrent(pages, displayed);
+  if (live) return overlayFreshCurrent(pages, live);
+  return pages;
 }
