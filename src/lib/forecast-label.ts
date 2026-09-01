@@ -31,6 +31,6 @@ export function forecastHourLabel(hour: string, dict: Dictionary, today = statio
   const tomorrow = addIsoDays(today, 1);
   if (date === today) return mode === 'N' ? dict.tonight : dict.today;
   if (date === tomorrow && mode === 'D') return dict.tomorrow;
-  const weekday = weekdayFromDate(date, dict.weekdays);
+  const weekday = weekdayFromDate(date, dict.weekdaysLong);
   return mode === 'N' ? `${weekday} ${dict.tonight}` : weekday;
 }

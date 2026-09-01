@@ -18,6 +18,7 @@
   --inactive-forecast: #3d3558;
   --inactive-history: #4a3a6a;
   --inactive-prefs: #3a4a5c;
+  --inactive-screen: #4a2e22;
   --gap: 0.28rem;
   --rail: 12.5rem;
   --bar: 5.15rem;
@@ -245,12 +246,37 @@ button:disabled {
   min-height: 3.6rem;
 }
 
-.pill-prefs {
+.rail-utils {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  flex: 0 0 auto;
+}
+
+.pill-prefs,
+.pill-screen {
   flex: 0 0 auto;
   min-height: 3.6rem;
+  font-size: 1.05rem;
+}
+
+.pill-prefs {
   background: var(--inactive-prefs);
   color: #a8c0d0;
-  font-size: 1.05rem;
+}
+
+.pill-screen {
+  background: var(--inactive-screen);
+  color: #f0c8b0;
+}
+
+.pill-screen.is-active {
+  background: var(--atomic-tangerine);
+  color: #1a0a00;
+}
+
+.pill[hidden] {
+  display: none;
 }
 
 .pill-station {
@@ -355,6 +381,15 @@ button:disabled {
   .pill-prefs:hover {
     background: #6a8aa4;
     color: #041018;
+  }
+
+  .pill-screen:hover {
+    background: #8a5440;
+    color: #1a0a00;
+  }
+
+  .pill-screen.is-active:hover {
+    background: #f0a878;
   }
 
   .pill-lang:hover:not(.is-active) {
@@ -1271,20 +1306,28 @@ button:disabled {
   .rail {
     grid-column: 1;
     grid-row: 1;
-    flex-direction: row;
+    flex-direction: column;
     align-items: stretch;
     align-self: stretch;
     position: sticky;
     top: 0;
     z-index: 4;
+    min-width: 0;
+    max-width: 100%;
     min-height: 0;
     padding: 0.2rem 0 0.35rem;
     background: var(--lcars-bg);
   }
 
   .pills {
-    flex-direction: row;
-    flex: 1 1 auto;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .rail .pills .pill-nav {
     min-width: 0;
   }
 
@@ -1400,12 +1443,25 @@ button:disabled {
     display: none;
   }
 
-  .rail .pill-prefs {
-    flex: 0 0 auto;
+  .rail-utils {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .rail-utils:not(:has([data-fullscreen]:not([hidden]))) {
+    grid-template-columns: 1fr;
+  }
+
+  .rail .pill-prefs,
+  .rail .pill-screen {
+    flex: 1 1 0;
+    min-width: 0;
     margin-top: 0;
     min-height: 2.6rem;
-    padding-left: 0.7rem;
-    padding-right: 0.75rem;
+    padding-left: 0.55rem;
+    padding-right: 0.6rem;
     font-size: 0.72rem;
   }
 

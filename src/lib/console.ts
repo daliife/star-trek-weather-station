@@ -9,6 +9,7 @@ import {
   setSoundEnabled,
   unlockSound,
 } from './sound';
+import { isFullscreenActive, isFullscreenSupported, toggleFullscreen } from './fullscreen';
 import { parseWeatherSnapshot } from './snapshot';
 import { DEFAULT_STATION, applyDocumentTitle, fetchOpenMeteoSnapshot } from './station';
 import type { ConsoleView, Lang, LinkStatus, OpsStatus, Units, WeatherSeries, WeatherSnapshot } from './types';
@@ -175,6 +176,21 @@ function bindSeries(
   });
 }
 
+function syncFullscreenButton(root: HTMLElement) {
+  const btn = root.querySelector<HTMLButtonElement>('[data-fullscreen]');
+  if (!btn) return;
+  const supported = isFullscreenSupported();
+  btn.hidden = !supported;
+  if (!supported) return;
+  const on = isFullscreenActive();
+  btn.classList.toggle('is-active', on);
+  btn.setAttribute('aria-pressed', String(on));
+  const enter = btn.querySelector<HTMLElement>('[data-fs="enter"]');
+  const exit = btn.querySelector<HTMLElement>('[data-fs="exit"]');
+  if (enter) enter.hidden = on;
+  if (exit) exit.hidden = !on;
+}
+
 function setView(root: HTMLElement, view: ConsoleView) {
   root.dataset.view = view;
   root.querySelectorAll<HTMLElement>('[data-panel]').forEach((panel) => {
@@ -330,6 +346,7 @@ export function initWeatherConsole(root: HTMLElement) {
       btn.classList.toggle('is-active', active);
       btn.setAttribute('aria-pressed', String(active));
     });
+    syncFullscreenButton(root);
 
     applyDocumentTitle(snapshot?.location.name ?? station.name);
     bind(root, 'clock', formatClock(new Date()));
@@ -453,6 +470,16 @@ export function initWeatherConsole(root: HTMLElement) {
       root.querySelector<HTMLElement>(`[data-panel="${view}"]`)?.focus();
     });
   });
+
+  root.querySelector<HTMLButtonElement>('[data-fullscreen]')?.addEventListener('click', () => {
+    playKey();
+    void toggleFullscreen().then(() => syncFullscreenButton(root)).catch(() => {
+      syncFullscreenButton(root);
+    });
+  });
+  const onFullscreenChange = () => syncFullscreenButton(root);
+  document.addEventListener('fullscreenchange', onFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 
   const prefs = root.querySelector<HTMLDialogElement>('[data-prefs]');
   const prefsOpen = root.querySelector<HTMLButtonElement>('[data-prefs-open]');

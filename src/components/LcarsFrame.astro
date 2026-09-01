@@ -30,9 +30,15 @@ import Readout from './Readout.astro';
         <span data-i18n="history">History</span>
       </button>
     </nav>
-    <button class="pill pill-prefs" type="button" data-prefs-open aria-haspopup="dialog" aria-controls="prefs-dialog" aria-expanded="false">
-      <span data-i18n="preferences">Preferences</span>
-    </button>
+    <div class="rail-utils">
+      <button class="pill pill-screen" type="button" data-fullscreen aria-pressed="false" hidden>
+        <span data-fs="enter" data-i18n="fullscreen">Viewscreen</span>
+        <span data-fs="exit" data-i18n="fullscreenExit" hidden>Window</span>
+      </button>
+      <button class="pill pill-prefs" type="button" data-prefs-open aria-haspopup="dialog" aria-controls="prefs-dialog" aria-expanded="false">
+        <span data-i18n="preferences">Preferences</span>
+      </button>
+    </div>
   </aside>
 
   <header class="header">

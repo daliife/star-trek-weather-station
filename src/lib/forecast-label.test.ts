@@ -13,7 +13,14 @@ describe('forecastHourLabel', () => {
     expect(forecastHourLabel('D:2026-08-30', dict, '2026-08-30')).toBe('Today');
     expect(forecastHourLabel('N:2026-08-30', dict, '2026-08-30')).toBe('Tonight');
     expect(forecastHourLabel('D:2026-08-31', dict, '2026-08-30')).toBe('Tomorrow');
-    expect(forecastHourLabel('N:2026-08-31', dict, '2026-08-30')).toBe('Mon Tonight');
-    expect(forecastHourLabel('D:2026-09-01', dict, '2026-08-30')).toBe('Tue');
+    expect(forecastHourLabel('N:2026-08-31', dict, '2026-08-30')).toBe('Monday Tonight');
+    expect(forecastHourLabel('D:2026-09-01', dict, '2026-08-30')).toBe('Tuesday');
+  });
+
+  it('uses full weekday names in Catalan', () => {
+    const ca = dictionaries.ca;
+    expect(forecastHourLabel('N:2026-09-02', ca, '2026-09-01')).toBe('Dimecres Nit');
+    expect(forecastHourLabel('D:2026-09-03', ca, '2026-09-01')).toBe('Dijous');
+    expect(forecastHourLabel('N:2026-09-03', ca, '2026-09-01')).toBe('Dijous Nit');
   });
 });
