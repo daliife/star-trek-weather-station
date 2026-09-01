@@ -39,7 +39,7 @@ jobs:
 
       - name: Setup pnpm
         if: github.event_name != 'schedule' || steps.dist-cache.outputs.cache-hit != 'true'
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node
         if: github.event_name != 'schedule' || steps.dist-cache.outputs.cache-hit != 'true'
