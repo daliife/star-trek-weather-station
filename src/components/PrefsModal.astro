@@ -1,6 +1,7 @@
 ---
 import LangToggle from './LangToggle.astro';
 import SoundToggle from './SoundToggle.astro';
+import ThemeToggle from './ThemeToggle.astro';
 import UnitsToggle from './UnitsToggle.astro';
 ---
 
@@ -11,6 +12,10 @@ import UnitsToggle from './UnitsToggle.astro';
       <button class="prefs-close" type="submit" value="close" data-i18n="close">Close</button>
     </header>
     <div class="prefs-body">
+      <section class="prefs-group">
+        <h3 class="prefs-label" data-i18n="theme">Theme</h3>
+        <ThemeToggle />
+      </section>
       <section class="prefs-group">
         <h3 class="prefs-label" data-i18n="lang">Language</h3>
         <LangToggle />

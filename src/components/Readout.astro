@@ -3,7 +3,7 @@ import { initial } from '../lib/ssr-snapshot';
 ---
 
 <section class="readout">
-  <div class="status-pill visually-hidden" data-bind="opsStatus" aria-live="polite" aria-atomic="true">{initial.opsStatus}</div>
+  <div class="status-pill" data-bind="opsStatus" aria-live="polite" aria-atomic="true">{initial.opsStatus}</div>
   <div class="temp-block">
     <span class="metric-label" data-i18n="airTemp">Temperature</span>
     <div class="temp-line">

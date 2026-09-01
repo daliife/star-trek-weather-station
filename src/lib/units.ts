@@ -104,3 +104,18 @@ export function formatClock(date: Date): string {
   const seconds = String(date.getSeconds()).padStart(2, '0');
   return `${hours}:${minutes}:${seconds}`;
 }
+
+export function formatCountdown(ms: number): string {
+  if (!Number.isFinite(ms) || ms <= 0) return '00:00';
+  const total = Math.min(Math.floor(ms / 1000), 99 * 60 + 59);
+  const minutes = String(Math.floor(total / 60)).padStart(2, '0');
+  const seconds = String(total % 60).padStart(2, '0');
+  return `${minutes}:${seconds}`;
+}
+
+export function formatStardate(date: Date): string {
+  const year = date.getFullYear();
+  const elapsed = date.getTime() - new Date(year, 0, 1).getTime();
+  const dayFraction = elapsed / 86_400_000;
+  return ((year % 100) * 1000 + (dayFraction / 365.25) * 1000).toFixed(1);
+}

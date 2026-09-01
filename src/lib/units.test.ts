@@ -4,7 +4,9 @@ import {
   cardinalIndex,
   formatAge,
   formatClock,
+  formatCountdown,
   formatDegrees,
+  formatStardate,
   formatPrecip,
   formatPressure,
   formatTemp,
@@ -73,5 +75,20 @@ describe('observation age', () => {
 
   it('pads the console clock to HH:MM:SS', () => {
     expect(formatClock(new Date(2026, 7, 30, 9, 5, 7))).toBe('09:05:07');
+  });
+
+  it('pads a countdown as MM:SS and clamps empty values', () => {
+    expect(formatCountdown(0)).toBe('00:00');
+    expect(formatCountdown(-12)).toBe('00:00');
+    expect(formatCountdown(1500)).toBe('00:01');
+    expect(formatCountdown(61_000)).toBe('01:01');
+    expect(formatCountdown(10 * 60 * 1000)).toBe('10:00');
+  });
+
+  it('renders a TNG-style stardate from local time', () => {
+    expect(formatStardate(new Date(2026, 0, 1, 0, 0, 0))).toBe('26000.0');
+    const later = formatStardate(new Date(2026, 8, 1, 12, 0, 0));
+    expect(later).toMatch(/^\d{5}\.\d$/);
+    expect(Number(later)).toBeGreaterThan(26000);
   });
 });

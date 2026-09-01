@@ -10,6 +10,7 @@ import {
   unlockSound,
 } from './sound';
 import { isFullscreenActive, isFullscreenSupported, toggleFullscreen } from './fullscreen';
+import { isTheme, type ConsoleTheme } from './theme';
 import { parseWeatherSnapshot } from './snapshot';
 import { DEFAULT_STATION, applyDocumentTitle, fetchOpenMeteoSnapshot } from './station';
 import type { ConsoleView, Lang, LinkStatus, OpsStatus, Units, WeatherSeries, WeatherSnapshot } from './types';
@@ -17,7 +18,9 @@ import {
   cardinalIndex,
   formatAge,
   formatClock,
+  formatCountdown,
   formatDegrees,
+  formatStardate,
   formatPrecip,
   formatPressure,
   formatTemp,
@@ -33,6 +36,7 @@ import {
 
 const LANG_KEY = 'lcars.lang';
 const UNITS_KEY = 'lcars.units';
+const THEME_KEY = 'lcars.theme';
 const VIEW_KEY = 'lcars.view';
 const POLL_MS = 10 * 60 * 1000;
 const RESUME_MS = 5 * 60 * 1000;
@@ -95,6 +99,16 @@ function loadUnits(): Units {
 function loadView(): ConsoleView {
   const stored = localStorage.getItem(VIEW_KEY);
   return isView(stored) ? stored : 'station';
+}
+
+function loadTheme(): ConsoleTheme {
+  const stored = localStorage.getItem(THEME_KEY);
+  return isTheme(stored) ? stored : 'classic';
+}
+
+function tickerLine(dict: Dictionary, lastLoadAt: number, now = Date.now()): string {
+  const remaining = lastLoadAt > 0 ? POLL_MS - (now - lastLoadAt) : 0;
+  return `${dict.poll}  ${formatCountdown(remaining)}`;
 }
 
 function bindSeries(
@@ -305,6 +319,7 @@ export function initWeatherConsole(root: HTMLElement) {
   let lang = loadLang();
   let units = loadUnits();
   let view = loadView();
+  let theme = loadTheme();
   let soundOn = initSound();
   const station = DEFAULT_STATION;
   let snapshot: WeatherSnapshot | null = null;
@@ -314,6 +329,7 @@ export function initWeatherConsole(root: HTMLElement) {
   let showSeriesWait = false;
   let seriesWaitTimer: number | null = null;
   let failed = false;
+  let lastLoadAt = 0;
 
   const seriesNote = (dict: Dictionary) => {
     if (seriesFailed) return dict.noData;
@@ -328,6 +344,7 @@ export function initWeatherConsole(root: HTMLElement) {
     root.dataset.lang = lang;
     root.dataset.units = units;
     root.dataset.sound = soundOn ? 'on' : 'off';
+    root.dataset.theme = theme;
     document.documentElement.lang = lang;
     setView(root, view);
     bindSeries(root, series, units, dict, seriesNote(dict));
@@ -346,10 +363,17 @@ export function initWeatherConsole(root: HTMLElement) {
       btn.classList.toggle('is-active', active);
       btn.setAttribute('aria-pressed', String(active));
     });
+    root.querySelectorAll<HTMLElement>('[data-theme]').forEach((btn) => {
+      const active = btn.dataset.theme === theme;
+      btn.classList.toggle('is-active', active);
+      btn.setAttribute('aria-pressed', String(active));
+    });
     syncFullscreenButton(root);
 
     applyDocumentTitle(snapshot?.location.name ?? station.name);
     bind(root, 'clock', formatClock(new Date()));
+    bind(root, 'stardate', formatStardate(new Date()));
+    bind(root, 'ticker', tickerLine(dict, lastLoadAt));
 
     const { ops, link } = snapshot || failed
       ? deriveStatus(snapshot, failed)
@@ -460,6 +484,16 @@ export function initWeatherConsole(root: HTMLElement) {
     });
   });
 
+  root.querySelectorAll<HTMLButtonElement>('[data-theme]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!isTheme(btn.dataset.theme ?? '')) return;
+      theme = btn.dataset.theme as ConsoleTheme;
+      localStorage.setItem(THEME_KEY, theme);
+      playKey();
+      render();
+    });
+  });
+
   root.querySelectorAll<HTMLButtonElement>('[data-view]').forEach((btn) => {
     btn.addEventListener('click', () => {
       if (!isView(btn.dataset.view ?? '')) return;
@@ -467,7 +501,6 @@ export function initWeatherConsole(root: HTMLElement) {
       localStorage.setItem(VIEW_KEY, view);
       playView();
       render();
-      root.querySelector<HTMLElement>(`[data-panel="${view}"]`)?.focus();
     });
   });
 
@@ -498,11 +531,12 @@ export function initWeatherConsole(root: HTMLElement) {
 
   window.setInterval(() => {
     if (document.hidden) return;
-    bind(root, 'clock', formatClock(new Date()));
+    const now = new Date();
+    bind(root, 'clock', formatClock(now));
+    bind(root, 'stardate', formatStardate(now));
+    bind(root, 'ticker', tickerLine(dictionaries[lang], lastLoadAt, now.getTime()));
     if (snapshot) bind(root, 'observed', formatAge(snapshot.observedAt, dictionaries[lang]));
   }, 1000);
-
-  let lastLoadAt = 0;
 
   const loadWeather = async (quiet = false) => {
     if (!quiet) {
